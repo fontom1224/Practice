@@ -3,7 +3,7 @@ import pygame
 class Ship(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('images/ship.png').convert_alpha()
+        self.image = pygame.image.load('ship.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -18,7 +18,7 @@ class Ship(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('images/bullet.png').convert_alpha()
+        self.image = pygame.image.load('bullet.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = -7
@@ -31,7 +31,7 @@ class Bullet(pygame.sprite.Sprite):
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, x):
         super().__init__()
-        self.image = pygame.image.load('images/asteroid.png').convert_alpha()
+        self.image = pygame.image.load('asteroid.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = -40
