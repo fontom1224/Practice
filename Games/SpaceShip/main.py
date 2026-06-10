@@ -1,6 +1,6 @@
 import pygame
 import random
-from sprites import Ship, Bullet, Asteroid
+from sprites import Ship, Bullet, Asteroid, Asteroidbr
 
 # Инициализация
 pygame.init()
@@ -48,12 +48,16 @@ while running:
 
     # Спавн астероидов
     spawn_timer += 1
-    if spawn_timer > 30:
+    if spawn_timer == 15:
+        asteroid = Asteroidbr(random.randint(0, WIDTH - 32))
+        all_sprites.add(asteroid)
+        asteroids.add(asteroid)
+    elif spawn_timer > 30:
         spawn_timer = 0
         asteroid = Asteroid(random.randint(0, WIDTH - 40))
         all_sprites.add(asteroid)
         asteroids.add(asteroid)
-
+    
     # Столкновения
     hits = pygame.sprite.groupcollide(bullets, asteroids, True, True)
     for hit in hits:
