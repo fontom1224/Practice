@@ -1,6 +1,6 @@
 import pygame
 import random
-from sprites import Ship, Bullet, Asteroid, Asteroidbr
+from sprites import Ship, Bullet, Asteroid
 
 # Инициализация
 pygame.init()
@@ -51,31 +51,32 @@ while running:
     if spawn_timer > 30:
         spawn_timer = 0
         # Вероятность: 70 % — маленькие, 30 % — большие
-        asteroid_type = random.choices(
-            [1, 2],
-            weights=[70, 30]  # Веса определяют вероятность
-        )[0]
+        asteroid_type = random.choices([1, 2], weights=[70, 30])[0]
         asteroid = Asteroid(random.randint(0, WIDTH - 40), asteroid_type)
         all_sprites.add(asteroid)
         asteroids.add(asteroid)
 
-    # Столкновения
-    hits = pygame.sprite.groupcollide(bullets, asteroids, True, True)
+    # СТОЛКНОВЕНИЯ — исправленный блок
+    bullets_to_remove = []  # Список пуль для удаления после обработки
+
     for bullet in bullets:
         # Проверяем столкновения пули с каждым астероидом
         collided_asteroids = pygame.sprite.spritecollide(bullet, asteroids, False)
-        for asteroid in collided_asteroids:
-            # Пуля уничтожается при попадании
-            bullet.kill()
-            # Астероид получает урон
-            asteroid.take_damage()
-            # Начисляем очки в зависимости от типа
-            if asteroid.asteroid_type == 1:
-                score += 10
-            else:
-                score += 30
-            break  # Выходим после первого столкновения
 
+        if collided_asteroids:  # Если есть столкновение
+            # Добавляем пулю в список для удаления
+            bullets_to_remove.append(bullet)
+            # Обрабатываем первый попавшийся астероид
+            asteroid = collided_asteroids[0]
+            # Астероид получает урон
+            if asteroid.take_damage():  # Если астероид уничтожен
+                score += asteroid.points  # Начисляем очки
+
+    # Удаляем все пули, которые попали в астероиды
+    for bullet in bullets_to_remove:
+        bullet.kill()
+
+    # Проверка столкновения корабля с астероидами
     if pygame.sprite.spritecollideany(ship, asteroids):
         running = False
 
