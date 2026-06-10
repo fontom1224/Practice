@@ -48,20 +48,33 @@ while running:
 
     # Спавн астероидов
     spawn_timer += 1
-    if spawn_timer == 15:
-        asteroid = Asteroidbr(random.randint(0, WIDTH - 32))
-        all_sprites.add(asteroid)
-        asteroids.add(asteroid)
-    elif spawn_timer > 30:
+    if spawn_timer > 30:
         spawn_timer = 0
-        asteroid = Asteroid(random.randint(0, WIDTH - 40))
+        # Вероятность: 70 % — маленькие, 30 % — большие
+        asteroid_type = random.choices(
+            [1, 2],
+            weights=[70, 30]  # Веса определяют вероятность
+        )[0]
+        asteroid = Asteroid(random.randint(0, WIDTH - 40), asteroid_type)
         all_sprites.add(asteroid)
         asteroids.add(asteroid)
-    
+
     # Столкновения
     hits = pygame.sprite.groupcollide(bullets, asteroids, True, True)
-    for hit in hits:
-        score += 10
+    for bullet in bullets:
+        # Проверяем столкновения пули с каждым астероидом
+        collided_asteroids = pygame.sprite.spritecollide(bullet, asteroids, False)
+        for asteroid in collided_asteroids:
+            # Пуля уничтожается при попадании
+            bullet.kill()
+            # Астероид получает урон
+            asteroid.take_damage()
+            # Начисляем очки в зависимости от типа
+            if asteroid.asteroid_type == 1:
+                score += 10
+            else:
+                score += 30
+            break  # Выходим после первого столкновения
 
     if pygame.sprite.spritecollideany(ship, asteroids):
         running = False
