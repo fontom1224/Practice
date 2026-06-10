@@ -2,12 +2,14 @@ import pygame
 import random
 from sprites import Ship, Bullet, Asteroid, Hp
 
+
 pygame.init()
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Asteroid Shooter")
 clock = pygame.time.Clock()
-
+bg_original = pygame.image.load('assets/fon.png')
+bg_image = pygame.transform.scale(bg_original, (800, 600))
 # Группы спрайтов
 all_sprites = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
@@ -38,6 +40,7 @@ while running:
     clock.tick(60)
     screen.fill((0, 0, 0))
 
+    screen.blit(bg_image, (0, 0))
     # Обработка событий
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
