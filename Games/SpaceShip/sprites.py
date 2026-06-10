@@ -35,14 +35,40 @@ class Asteroid(pygame.sprite.Sprite):
         # Базовые параметры по типам
         if asteroid_type == 1:  # Маленький метеор
             self.image_path = 'images/asteroid1.png'
-            self.size_factor = 0.7  # 70% от оригинала
-            self.health = 1  # Уничтожается одной пулей
+            self.size_factor = 0.7
+            self.health = 1
             self.speed = 4
-        else:  # asteroid_type == 2 — Большой метеор
+            self.points = 10  # Очки за уничтожение
+        else:  # Большой метеор
             self.image_path = 'images/asteroid2.png'
-            self.size_factor = 1.5  # 150% от оригинала
-            self.health = 3  # Нужно 3 пули
+            self.size_factor = 1.5
+            self.health = 3
             self.speed = 2
+            self.points = 30  # Больше очков за сложный астероид
+
+        # Загружаем и масштабируем изображение
+        original_image = pygame.image.load(self.image_path).convert_alpha()
+        width = int(original_image.get_width() * self.size_factor)
+        height = int(original_image.get_height() * self.size_factor)
+        self.image = pygame.transform.scale(original_image, (width, height))
+
+
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = -40
+        self.asteroid_type = asteroid_type
+
+    def update(self):
+        self.rect.y += self.speed
+        if self.rect.top > 600:
+            self.kill()
+
+    def take_damage(self):
+        """Метод для получения урона"""
+        self.health -= 1
+        if self.health <= 0:
+            return True  # Возвращаем True, если астероид уничтожен
+        return False
 
         # Загружаем и масштабируем изображение
         original_image = pygame.image.load(self.image_path).convert_alpha()
