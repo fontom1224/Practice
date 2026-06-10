@@ -1,5 +1,6 @@
 import pygame
 
+
 class Ship(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -78,5 +79,3 @@ class Hp(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-    def update(self, *args):
-        pass
