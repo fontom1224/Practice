@@ -1,110 +1,94 @@
 import pygame
+import random
+from sprites import Ship, Bullet, Asteroid, Hp
 
-class Ship(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.image.load('assets/ship.png').convert_alpha()
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.speed = 5
+# Инициализация
+pygame.init()
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Asteroid Shooter")
+clock = pygame.time.Clock()
 
-    def update(self, keys):
-        if keys[pygame.K_LEFT] and self.rect.left > 0:
-            self.rect.x -= self.speed
-        if keys[pygame.K_RIGHT] and self.rect.right < 800:
-            self.rect.x += self.speed
+# Создание групп спрайтов
+all_sprites = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
+asteroids = pygame.sprite.Group()
 
-class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.image.load('assets/bullet.png').convert_alpha()
-        self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
-        self.speed = -7
+# Создание корабля
+ship = Ship(WIDTH // 2 - 25, HEIGHT - 60)
+all_sprites.add(ship)
 
-    def update(self):
-        self.rect.y += self.speed
-        if self.rect.bottom < 0:
-            self.kill()
+hp = Hp(WIDTH // 2 - 45, HEIGHT - 60)
+all_sprites.add(hp)
+# Счёт
+score = 0
+font = pygame.font.Font(None, 36)
 
-class Asteroid(pygame.sprite.Sprite):
-    def __init__(self, x, asteroid_type=1):
-        super().__init__()
+# Таймер для спавна астероидов
+spawn_timer = 0
 
-        # Базовые параметры по типам
-        if asteroid_type == 1:  # Маленький метеор
-            self.image_path = 'images/asteroid1.png'
-            self.size_factor = 0.7
-            self.health = 1
-            self.speed = 4
-            self.points = 10  # Очки за уничтожение
-        else:  # Большой метеор
-            self.image_path = 'images/asteroid2.png'
-            self.size_factor = 1.5
-            self.health = 3
-            self.speed = 2
-            self.points = 30  # Больше очков за сложный астероид
+running = True
+while running:
+    clock.tick(60)
+    screen.fill((0, 0, 0))
 
-        # Загружаем и масштабируем изображение
-        original_image = pygame.image.load(self.image_path).convert_alpha()
-        width = int(original_image.get_width() * self.size_factor)
-        height = int(original_image.get_height() * self.size_factor)
-        self.image = pygame.transform.scale(original_image, (width, height))
+    # Обработка событий
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                bullet = Bullet(ship.rect.centerx, ship.rect.top)
+                all_sprites.add(bullet)
+                bullets.add(bullet)
 
+    # Обновление
+    keys = pygame.key.get_pressed()
+    ship.update(keys)
+    hp.update(keys)
+    bullets.update()
+    asteroids.update()
 
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = -40
-        self.asteroid_type = asteroid_type
+    # Спавн астероидов
+    spawn_timer += 1
+    if spawn_timer > 30:
+        spawn_timer = 0
+        # Вероятность: 70 % — маленькие, 30 % — большие
+        asteroid_type = random.choices(
+            [1, 2],
+            weights=[70, 30]  # Веса определяют вероятность
+        )[0]
+        asteroid = Asteroid(random.randint(0, WIDTH - 40), asteroid_type)
+        all_sprites.add(asteroid)
+        asteroids.add(asteroid)
 
-    def update(self):
-        self.rect.y += self.speed
-        if self.rect.top > 600:
-            self.kill()
+    # Столкновения
+    hits = pygame.sprite.groupcollide(bullets, asteroids, True, True)
+    for bullet in bullets:
+        # Проверяем столкновения пули с каждым астероидом
+        collided_asteroids = pygame.sprite.spritecollide(bullet, asteroids, False)
+        for asteroid in collided_asteroids:
+            # Пуля уничтожается при попадании
+            bullet.kill()
+            # Астероид получает урон
+            asteroid.take_damage()
+            # Начисляем очки в зависимости от типа
+            if asteroid.asteroid_type == 1:
+                score += 10
+            else:
+                score += 30
+            break  # Выходим после первого столкновения
 
-    def take_damage(self):
-        """Метод для получения урона"""
-        self.health -= 1
-        if self.health <= 0:
-            return True  # Возвращаем True, если астероид уничтожен
-        return False
+    if pygame.sprite.spritecollideany(ship, asteroids):
+        running = False
 
-        # Загружаем и масштабируем изображение
-        original_image = pygame.image.load(self.image_path).convert_alpha()
-        width = int(original_image.get_width() * self.size_factor)
-        height = int(original_image.get_height() * self.size_factor)
-        self.image = pygame.transform.scale(original_image, (width, height))
+    # Отрисовка
+    all_sprites.draw(screen)
 
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = -40
-        self.asteroid_type = asteroid_type
+    # Отображение счёта
+    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+    screen.blit(score_text, (10, 10))
 
-    def update(self):
-        self.rect.y += self.speed
-        if self.rect.top > 600:
-            self.kill()
+    pygame.display.flip()
 
-    def take_damage(self):
-        """Метод для получения урона"""
-        self.health -= 1
-        if self.health <= 0:
-            self.kill()  # Уничтожаем, если здоровье закончилось
-
-    def update(self):
-        self.rect.y += self.speed
-        if self.rect.top > 600:
-            self.kill()
-
-
-    def update(self):
-        self.rect.y += self.speed
-        if self.rect.top > 600:
-            self.kill()
-#class Hp(pygame.sprite.Sprite):
- #   def __init__(self, x, y):
-  #      super().__init__()
-   #     self.image = pygame.image.load('assets/HealthsWhiteBorder.png').convert_alpha()
-    #    self.rect.y = y
-       # self.speed = 5
+pygame.quit()
