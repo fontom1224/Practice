@@ -124,12 +124,10 @@ def reset_game():
 
 def update_hearts():
     """Обновляет отображение сердец"""
-    # Очищаем старые сердца
     for heart in heart_sprites:
         heart.kill()
     heart_sprites.empty()
 
-    # Создаём новые сердца
     for i in range(lives):
         heart = Hp(10 + i * 40, 10)
         heart_sprites.add(heart)
@@ -150,7 +148,7 @@ POWERUP_DURATION = 8000
 SHOT_DELAY_BOOST = 250
 
 running = True
-space_just_pressed = False  # Флаг для однократного выстрела
+space_held = False  # Флаг зажатия пробела
 last_shot_time = 0
 font = pygame.font.Font(None, 36)
 
@@ -165,7 +163,8 @@ while running:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                # Только один выстрел при нажатии
+                space_held = True
+                # Первый выстрел сразу при нажатии
                 current_time = pygame.time.get_ticks()
                 if current_time - last_shot_time >= current_shot_delay:
                     bullet = Bullet(ship.rect.centerx, ship.rect.top)
@@ -181,9 +180,25 @@ while running:
                 if show_menu():
                     reset_game()
                     last_shot_time = 0
+                    space_held = False
                 else:
                     running = False
                 pygame.mixer.music.unpause()
+
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_SPACE:
+                space_held = False  # Отпустили пробел - прекращаем стрельбу
+
+    # Автоматическая стрельба при зажатом пробеле
+    if space_held:
+        current_time = pygame.time.get_ticks()
+        if current_time - last_shot_time >= current_shot_delay:
+            bullet = Bullet(ship.rect.centerx, ship.rect.top)
+            all_sprites.add(bullet)
+            bullets.add(bullet)
+            if shoot_sound:
+                shoot_sound.play()
+            last_shot_time = current_time
 
     current_time = pygame.time.get_ticks()
     if powerup_active and current_time >= powerup_end_time:
@@ -387,11 +402,12 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
+                space_held = False
             else:
                 running = False
             pygame.mixer.music.unpause()
         else:
-            update_hearts()  # Просто обновляем сердца
+            update_hearts()
 
     # Столкновения с пулями боссов
     if pygame.sprite.spritecollide(ship, boss_bullets, True):
@@ -404,6 +420,7 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
+                space_held = False
             else:
                 running = False
             pygame.mixer.music.unpause()
@@ -421,13 +438,14 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
+                space_held = False
             else:
                 running = False
             pygame.mixer.music.unpause()
         else:
             update_hearts()
 
-    # Столкновения с сетью (только замедление)
+    # Столкновения с сетью
     net_hits = pygame.sprite.spritecollide(ship, net_bullets, True)
     for net in net_hits:
         ship.slow_timer = 180
@@ -443,6 +461,7 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
+                space_held = False
             else:
                 running = False
             pygame.mixer.music.unpause()
@@ -460,6 +479,7 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
+                space_held = False
             else:
                 running = False
             pygame.mixer.music.unpause()
