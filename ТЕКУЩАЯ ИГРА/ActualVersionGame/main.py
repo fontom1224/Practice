@@ -45,12 +45,14 @@ font = pygame.font.Font(None, 36)
 # Флаг, появился ли уже босс (чтобы не спавнить несколько)
 boss1_spawned = False
 
+
 def update_hearts():
     heart_sprites.empty()
     for i in range(lives):
         heart = Hp(10 + i * 40, 10)
         heart_sprites.add(heart)
         all_sprites.add(heart)
+
 
 update_hearts()
 
@@ -102,7 +104,7 @@ while running:
     ship.update(keys)
     bullets.update()
     asteroids.update()
-    
+
     # Обновление боссов и их стрельба
     for boss in bosses:
         if boss.update():  # если пора стрелять
@@ -129,6 +131,18 @@ while running:
                 if dead_asteroid_sound:
                     dead_asteroid_sound.play()
                 score += asteroid.points
+
+                # Если это большой метеорит (тип 2), создаём два маленьких
+                if asteroid.asteroid_type == 2:
+                    # Создаём два маленьких метеорита на месте большого
+                    small_asteroid1 = Asteroid(asteroid.rect.centerx - 20, 1)
+                    small_asteroid2 = Asteroid(asteroid.rect.centerx + 20, 1)
+                    small_asteroid1.rect.y = asteroid.rect.centery
+                    small_asteroid2.rect.y = asteroid.rect.centery
+                    all_sprites.add(small_asteroid1, small_asteroid2)
+                    asteroids.add(small_asteroid1, small_asteroid2)
+
+                asteroid.kill()
             break
 
     # --- Столкновения пуль игрока с боссом ---
