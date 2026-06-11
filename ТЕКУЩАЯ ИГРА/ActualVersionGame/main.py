@@ -132,7 +132,7 @@ while running:
                     dead_asteroid_sound.play()
                 score += asteroid.points
 
-                # Если это большой метеорит (тип 2), создаём два маленьких
+                # Если это большой метеорит, создаём два маленьких
                 if asteroid.asteroid_type == 2:
                     # Создаём два маленьких метеорита на месте большого
                     small_asteroid1 = Asteroid(asteroid.rect.centerx - 20, 1)
@@ -141,7 +141,6 @@ while running:
                     small_asteroid2.rect.y = asteroid.rect.centery
                     all_sprites.add(small_asteroid1, small_asteroid2)
                     asteroids.add(small_asteroid1, small_asteroid2)
-
                 asteroid.kill()
             break
 
