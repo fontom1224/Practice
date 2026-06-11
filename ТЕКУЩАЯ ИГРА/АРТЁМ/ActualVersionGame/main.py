@@ -18,6 +18,7 @@ try:
     dead_asteroid_sound = pygame.mixer.Sound('assets/DeadAsteroid.mp3')
     shoot_sound = pygame.mixer.Sound('assets/OneShoot.mp3')
     powerup_sound = pygame.mixer.Sound('assets/PowerUp.mp3')
+    heal_sound = pygame.mixer.Sound('assets/Heal.mp3')  # Звук лечения
     pygame.mixer.music.load('assets/Music.mp3')
     pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(-1)
@@ -28,6 +29,7 @@ except FileNotFoundError as e:
     dead_asteroid_sound = None
     shoot_sound = None
     powerup_sound = None
+    heal_sound = None
 
 all_sprites = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
@@ -36,6 +38,7 @@ heart_sprites = pygame.sprite.Group()
 bosses = pygame.sprite.Group()
 boss_bullets = pygame.sprite.Group()
 powerups = pygame.sprite.Group()
+medkits = pygame.sprite.Group()  # Группа для аптечек
 
 enemy_planes = pygame.sprite.Group()
 laser_bullets = pygame.sprite.Group()
@@ -48,6 +51,7 @@ all_sprites.add(ship)
 
 lives = 5
 score = 0
+medkits_collected = 0  # Счётчик собранных аптечек
 font = pygame.font.Font(None, 36)
 
 boss1_spawned = False
@@ -67,12 +71,14 @@ powerup_end_time = 0
 POWERUP_DURATION = 8000
 SHOT_DELAY_BOOST = 250
 
+
 def update_hearts():
     heart_sprites.empty()
     for i in range(lives):
         heart = Hp(10 + i * 40, 10)
         heart_sprites.add(heart)
         all_sprites.add(heart)
+
 
 update_hearts()
 spawn_timer = 0
@@ -121,6 +127,7 @@ while running:
     bullets.update()
     asteroids.update()
     powerups.update()
+    medkits.update()  # Обновляем аптечки
     enemy_planes.update()
     laser_bullets.update()
     net_bullets.update()
@@ -142,8 +149,8 @@ while running:
                     all_sprites.add(net)
                     net_bullets.add(net)
                 elif pattern == 2:
-                    diag1 = DiagBullet(boss.rect.centerx, boss.rect.bottom, math.pi/4)
-                    diag2 = DiagBullet(boss.rect.centerx, boss.rect.bottom, -math.pi/4)
+                    diag1 = DiagBullet(boss.rect.centerx, boss.rect.bottom, math.pi / 4)
+                    diag2 = DiagBullet(boss.rect.centerx, boss.rect.bottom, -math.pi / 4)
                     all_sprites.add(diag1, diag2)
                     diag_bullets.add(diag1, diag2)
                 elif pattern == 3:
@@ -167,8 +174,8 @@ while running:
                 all_sprites.add(net)
                 net_bullets.add(net)
             elif isinstance(plane, RedPlane):
-                diag1 = DiagBullet(plane.rect.centerx, plane.rect.bottom, math.pi/4)
-                diag2 = DiagBullet(plane.rect.centerx, plane.rect.bottom, -math.pi/4)
+                diag1 = DiagBullet(plane.rect.centerx, plane.rect.bottom, math.pi / 4)
+                diag2 = DiagBullet(plane.rect.centerx, plane.rect.bottom, -math.pi / 4)
                 all_sprites.add(diag1, diag2)
                 diag_bullets.add(diag1, diag2)
             elif isinstance(plane, YellowPlane):
@@ -195,11 +202,20 @@ while running:
                 if dead_asteroid_sound:
                     dead_asteroid_sound.play()
                 score += asteroid.points
+
+                # Шанс выпадения бонуса ускорения
                 drop_chance = 0.3 if asteroid.asteroid_type == 2 else 0.15
                 if random.random() < drop_chance:
                     powerup = PowerUp(asteroid.rect.centerx, asteroid.rect.centery)
                     all_sprites.add(powerup)
                     powerups.add(powerup)
+
+                if random.random() < 0.01:  # 1% шанс
+                    medkit = Medkit(asteroid.rect.centerx, asteroid.rect.centery)
+                    all_sprites.add(medkit)
+                    medkits.add(medkit)
+
+                # Распад большого астероида
                 if asteroid.asteroid_type == 2:
                     pos1_x = max(0, min(asteroid.rect.centerx - 20, WIDTH - 40))
                     pos2_x = max(0, min(asteroid.rect.centerx + 20, WIDTH - 40))
@@ -222,6 +238,12 @@ while running:
                 if dead_asteroid_sound:
                     dead_asteroid_sound.play()
 
+                if isinstance(boss, Boss):  # Аптечка с первого босса
+                    medkit = Medkit(boss.rect.centerx, boss.rect.centery)
+                    all_sprites.add(medkit)
+                    medkits.add(medkit)
+
+                # Очистка пуль босса
                 if isinstance(boss, Boss):
                     for b in list(boss_bullets):
                         b.kill()
@@ -271,7 +293,7 @@ while running:
             bullet.kill()
             break
 
-    # Столкновение корабля с бонусами
+    # Столкновение корабля с бонусами ускорения
     collected = pygame.sprite.spritecollide(ship, powerups, True)
     for powerup in collected:
         if powerup_sound:
@@ -279,6 +301,17 @@ while running:
         powerup_active = True
         powerup_end_time = pygame.time.get_ticks() + POWERUP_DURATION
         current_shot_delay = SHOT_DELAY_BOOST
+
+    # ★ НОВОЕ: Столкновение корабля с аптечками (лечение) ★
+    collected_medkits = pygame.sprite.spritecollide(ship, medkits, True)
+    for medkit in collected_medkits:
+        if heal_sound:
+            heal_sound.play()
+
+        if lives < 5:  # Максимум 5 жизней
+            lives = 5  # Восстанавливаем до максимума
+            update_hearts()
+            medkits_collected += 1
 
     # Столкновение корабля с астероидами
     if pygame.sprite.spritecollide(ship, asteroids, True):
@@ -368,7 +401,7 @@ while running:
         all_sprites.add(god)
         bosses.add(god)
         boss2_spawned = True
-        asteroid_spawn_enabled = False   # астероиды больше не спавнятся
+        asteroid_spawn_enabled = False
         print("Второй босс появился! Спавн астероидов остановлен.")
 
     # Если самолёты были созданы и все уничтожены – возобновляем спавн астероидов
@@ -385,11 +418,11 @@ while running:
         bar_width = 200
         bar_height = 15
         bar_x = WIDTH // 2 - bar_width // 2
-        bar_y = 20
+        bar_y = 35  # Сместили вниз, чтобы не накладывалось на текст
         pygame.draw.rect(screen, (100, 0, 0), (bar_x, bar_y, bar_width, bar_height))
         pygame.draw.rect(screen, (255, 0, 0), (bar_x, bar_y, bar_width * health_percent, bar_height))
         boss_text = font.render("БОСС", True, (255, 100, 100))
-        screen.blit(boss_text, (WIDTH // 2 - 30, 5))
+        screen.blit(boss_text, (WIDTH // 2 - 30, 15))  # Текст над полоской
 
     # Полоски здоровья самолётов
     for plane in enemy_planes:
@@ -401,9 +434,15 @@ while running:
         pygame.draw.rect(screen, (100, 100, 100), (bar_x, bar_y, bar_width, bar_height))
         pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, bar_width * health_percent, bar_height))
 
+    # Отображение счёта
     score_text = font.render(f"Счёт: {score}", True, (255, 255, 255))
     screen.blit(score_text, (10, 50))
 
+    # Отображение счётчика аптечек
+    medkit_text = font.render(f"Аптечки: {medkits_collected}", True, (255, 255, 255))
+    screen.blit(medkit_text, (10, 90))
+
+    # Отображение активного бонуса ускорения
     if powerup_active:
         time_left = max(0, (powerup_end_time - pygame.time.get_ticks()) // 1000)
         boost_text = font.render(f"УСКОРЕНИЕ: {time_left}с", True, (0, 255, 0))
