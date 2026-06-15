@@ -48,7 +48,7 @@ class Bullet(pygame.sprite.Sprite):
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, x, asteroid_type=1, vx=0):
         super().__init__()
-        self.vx = vx  # горизонтальная скорость
+        self.vx = vx
         if asteroid_type == 1:
             self.image_path = 'assets/asteroid1.png'
             self.size_factor = 1.0
@@ -335,14 +335,12 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
         self.move_speed = move_speed
         self.direction = 1
 
-        # Параметры вылета
         self.launch_mode = False
         self.launch_vx = 0
         self.launch_vy = 0
         self.launch_timer = 0
 
     def start_launch(self, start_x, start_y, vx, vy, duration=40):
-        """Начинает вылет из указанной точки с заданной скоростью"""
         self.rect.centerx = start_x
         self.rect.centery = start_y
         self.launch_mode = True
