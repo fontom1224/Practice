@@ -46,8 +46,9 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Asteroid(pygame.sprite.Sprite):
-    def __init__(self, x, asteroid_type=1):
+    def __init__(self, x, asteroid_type=1, vx=0):
         super().__init__()
+        self.vx = vx  # горизонтальная скорость
         if asteroid_type == 1:
             self.image_path = 'assets/asteroid1.png'
             self.size_factor = 1.0
@@ -71,8 +72,10 @@ class Asteroid(pygame.sprite.Sprite):
         self.asteroid_type = asteroid_type
 
     def update(self):
+        self.rect.x += self.vx
         self.rect.y += self.speed
-        if self.rect.top > 600:
+        if (self.rect.top > 600 or self.rect.bottom < 0 or
+            self.rect.right < 0 or self.rect.left > 800):
             self.kill()
 
     def take_damage(self):
@@ -95,9 +98,8 @@ class Hp(pygame.sprite.Sprite):
 class BossBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        # Используем текстуру пули игрока, можно заменить на отдельную
         self.image = pygame.image.load('assets/bossbullet.png').convert_alpha()
-        self.image = pygame.transform.rotate(self.image, 180)  # переворачиваем для врага
+        self.image = pygame.transform.rotate(self.image, 180)
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.top = y
@@ -107,6 +109,7 @@ class BossBullet(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if self.rect.top > 600:
             self.kill()
+
 
 class Boss(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -167,6 +170,8 @@ class Medkit(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if self.rect.top > 600:
             self.kill()
+
+
 class PowerUp(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -230,13 +235,6 @@ class GodBoss(pygame.sprite.Sprite):
             self.shoot_timer = 0
             if self.attack_pattern == 3 and random.random() > self.homing_chance:
                 return False
-            return True
-        return False
-
-    def take_damage(self):
-        self.health -= 1
-        if self.health <= 0:
-            self.kill()
             return True
         return False
 
@@ -337,20 +335,45 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
         self.move_speed = move_speed
         self.direction = 1
 
-    def update(self):
-        self.rect.x += self.move_speed * self.direction
-        if self.rect.right >= 800:
-            self.rect.right = 800
-            self.direction = -1
-        if self.rect.left <= 0:
-            self.rect.left = 0
-            self.direction = 1
+        # Параметры вылета
+        self.launch_mode = False
+        self.launch_vx = 0
+        self.launch_vy = 0
+        self.launch_timer = 0
 
-        self.shoot_timer += 1
-        if self.shoot_timer >= self.shoot_delay:
-            self.shoot_timer = 0
-            return True
-        return False
+    def start_launch(self, start_x, start_y, vx, vy, duration=40):
+        """Начинает вылет из указанной точки с заданной скоростью"""
+        self.rect.centerx = start_x
+        self.rect.centery = start_y
+        self.launch_mode = True
+        self.launch_vx = vx
+        self.launch_vy = vy
+        self.launch_timer = duration
+
+    def update(self):
+        if self.launch_mode:
+            self.rect.x += self.launch_vx
+            self.rect.y += self.launch_vy
+            self.launch_timer -= 1
+            if self.launch_timer <= 0:
+                self.launch_mode = False
+                self.launch_vx = 0
+                self.launch_vy = 0
+            return False
+        else:
+            self.rect.x += self.move_speed * self.direction
+            if self.rect.right >= 800:
+                self.rect.right = 800
+                self.direction = -1
+            if self.rect.left <= 0:
+                self.rect.left = 0
+                self.direction = 1
+
+            self.shoot_timer += 1
+            if self.shoot_timer >= self.shoot_delay:
+                self.shoot_timer = 0
+                return True
+            return False
 
     def take_damage(self):
         self.health -= 1
@@ -362,7 +385,7 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
 
 class BluePlane(EnemyPlaneBase):
     def __init__(self, x, y):
-        super().__init__(x, y, 'assets/blue.png', shoot_delay=90, move_speed=2)   # реже
+        super().__init__(x, y, 'assets/blue.png', shoot_delay=90, move_speed=2)
 
 
 class GreenPlane(EnemyPlaneBase):
