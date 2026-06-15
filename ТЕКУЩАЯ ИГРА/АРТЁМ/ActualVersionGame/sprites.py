@@ -2,10 +2,23 @@ import pygame
 import random
 import math
 
+def safe_load_image(path, default_size=(50, 50)):
+    """Безопасно загружает изображение, возвращает поверхность или чёрный прямоугольник."""
+    try:
+        img = pygame.image.load(path).convert_alpha()
+        return img
+    except (pygame.error, FileNotFoundError):
+        print(f"Предупреждение: не удалось загрузить {path}, использую заглушку")
+        surf = pygame.Surface(default_size, pygame.SRCALPHA)
+        surf.fill((255, 0, 255))  # яркий цвет для отладки
+        return surf
+
+
 class Ship(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/ship.png').convert_alpha()
+        self.base_image = safe_load_image('assets/ship.png')
+        self.image = self.base_image.copy()
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -13,8 +26,29 @@ class Ship(pygame.sprite.Sprite):
         self.speed = self.base_speed
         self.slow_timer = 0
         self.slow_factor = 0.5
+        # Неуязвимость
+        self.invincible = False
+        self.invincible_end_time = 0
+
+    def set_invincible(self, duration):
+        self.invincible = True
+        self.invincible_end_time = pygame.time.get_ticks() + duration
+
+    def update_invincibility(self):
+        if not self.invincible:
+            return
+        current_time = pygame.time.get_ticks()
+        if current_time >= self.invincible_end_time:
+            self.invincible = False
+            self.image = self.base_image.copy()
+        else:
+            # Мигание: меняем прозрачность каждые 100 мс
+            alpha = 128 if (current_time // 100) % 2 == 0 else 255
+            self.image = self.base_image.copy()
+            self.image.set_alpha(alpha)
 
     def update(self, keys):
+        self.update_invincibility()
         if self.slow_timer > 0:
             self.slow_timer -= 1
             self.speed = self.base_speed * self.slow_factor
@@ -34,7 +68,7 @@ class Ship(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/bullet.png').convert_alpha()
+        self.image = safe_load_image('assets/bullet.png')
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = -7
@@ -48,10 +82,10 @@ class Bullet(pygame.sprite.Sprite):
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, x, asteroid_type=1, vx=0):
         super().__init__()
-        self.vx = vx
+        self.vx = vx  # горизонтальная скорость
         if asteroid_type == 1:
             self.image_path = 'assets/asteroid1.png'
-            self.size_factor = 1.0
+            self.size_factor = 1.3
             self.health = 1
             self.speed = 4
             self.points = 10
@@ -62,7 +96,7 @@ class Asteroid(pygame.sprite.Sprite):
             self.speed = 2
             self.points = 30
 
-        original_image = pygame.image.load(self.image_path).convert_alpha()
+        original_image = safe_load_image(self.image_path)
         width = int(original_image.get_width() * self.size_factor)
         height = int(original_image.get_height() * self.size_factor)
         self.image = pygame.transform.scale(original_image, (width, height))
@@ -88,7 +122,7 @@ class Asteroid(pygame.sprite.Sprite):
 class Hp(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/HealthsWhiteBorder.png').convert_alpha()
+        self.image = safe_load_image('assets/HealthsWhiteBorder.png')
         self.image = pygame.transform.scale(self.image, (32, 32))
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -98,7 +132,7 @@ class Hp(pygame.sprite.Sprite):
 class BossBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/bossbullet.png').convert_alpha()
+        self.image = safe_load_image('assets/bossbullet.png')
         self.image = pygame.transform.rotate(self.image, 180)
         self.rect = self.image.get_rect()
         self.rect.centerx = x
@@ -114,7 +148,7 @@ class BossBullet(pygame.sprite.Sprite):
 class Boss(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/boss.png').convert_alpha()
+        self.image = safe_load_image('assets/boss.png')
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -159,7 +193,7 @@ class Boss(pygame.sprite.Sprite):
 class Medkit(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/medkit.png').convert_alpha()
+        self.image = safe_load_image('assets/medkit.png')
         self.image = pygame.transform.scale(self.image, (30, 30))
         self.rect = self.image.get_rect()
         self.rect.centerx = x
@@ -175,7 +209,7 @@ class Medkit(pygame.sprite.Sprite):
 class PowerUp(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/speedUpg.png').convert_alpha()
+        self.image = safe_load_image('assets/speedUpg.png')
         self.image = pygame.transform.scale(self.image, (30, 30))
         self.rect = self.image.get_rect()
         self.rect.centerx = x
@@ -191,14 +225,14 @@ class PowerUp(pygame.sprite.Sprite):
 class GodBoss(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/god.png').convert_alpha()
+        self.image = safe_load_image('assets/god.png')
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
         self.speed = 2
         self.health = 20
         self.points = 200
-        self.homing_chance = 5.0
+        self.homing_chance = 0.05   # 5% шанс НЕ стрелять (исправлено)
 
         self.direction = 1
         self.change_dir_timer = 0
@@ -233,7 +267,8 @@ class GodBoss(pygame.sprite.Sprite):
         self.shoot_timer += 1
         if self.shoot_timer >= self.shoot_delay:
             self.shoot_timer = 0
-            if self.attack_pattern == 3 and random.random() > self.homing_chance:
+            # Исправлено: только 5% шанс пропустить выстрел для самонаводящихся пуль
+            if self.attack_pattern == 3 and random.random() < self.homing_chance:
                 return False
             return True
         return False
@@ -249,7 +284,7 @@ class GodBoss(pygame.sprite.Sprite):
 class LaserBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/bluebullet.png').convert_alpha()
+        self.image = safe_load_image('assets/bluebullet.png')
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.top = y
@@ -264,7 +299,7 @@ class LaserBullet(pygame.sprite.Sprite):
 class NetBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load('assets/greenbullet.png').convert_alpha()
+        self.image = safe_load_image('assets/greenbullet.png')
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
@@ -279,7 +314,7 @@ class NetBullet(pygame.sprite.Sprite):
 class DiagBullet(pygame.sprite.Sprite):
     def __init__(self, x, y, angle):
         super().__init__()
-        self.image = pygame.image.load('assets/redbullet.png').convert_alpha()
+        self.image = safe_load_image('assets/redbullet.png')
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
@@ -298,7 +333,7 @@ class DiagBullet(pygame.sprite.Sprite):
 class HomingBullet(pygame.sprite.Sprite):
     def __init__(self, x, y, target):
         super().__init__()
-        self.image = pygame.image.load('assets/yellowbullet.png').convert_alpha()
+        self.image = safe_load_image('assets/yellowbullet.png')
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
@@ -323,7 +358,7 @@ class HomingBullet(pygame.sprite.Sprite):
 class EnemyPlaneBase(pygame.sprite.Sprite):
     def __init__(self, x, y, image_path, shoot_delay=60, move_speed=2):
         super().__init__()
-        self.image = pygame.image.load(image_path).convert_alpha()
+        self.image = safe_load_image(image_path)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -335,12 +370,14 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
         self.move_speed = move_speed
         self.direction = 1
 
+        # Параметры вылета
         self.launch_mode = False
         self.launch_vx = 0
         self.launch_vy = 0
         self.launch_timer = 0
 
     def start_launch(self, start_x, start_y, vx, vy, duration=40):
+        """Начинает вылет из указанной точки с заданной скоростью"""
         self.rect.centerx = start_x
         self.rect.centery = start_y
         self.launch_mode = True
@@ -366,6 +403,12 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
             if self.rect.left <= 0:
                 self.rect.left = 0
                 self.direction = 1
+
+            # Проверка выхода за границы экрана
+            if (self.rect.top > 600 or self.rect.bottom < 0 or
+                self.rect.left < 0 or self.rect.right > 800):
+                self.kill()
+                return False
 
             self.shoot_timer += 1
             if self.shoot_timer >= self.shoot_delay:
