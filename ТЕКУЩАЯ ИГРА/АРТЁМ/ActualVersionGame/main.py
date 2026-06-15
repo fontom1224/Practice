@@ -116,7 +116,7 @@ def reset_game():
     asteroid_spawn_enabled = True
     powerup_active = False
     powerup_end_time = 0
-    current_shot_delay = 500
+    current_shot_delay = 51
     spawn_timer = 0
 
     update_hearts()
@@ -297,8 +297,9 @@ while running:
                 if asteroid.asteroid_type == 2:
                     pos1_x = max(0, min(asteroid.rect.centerx - 20, WIDTH - 40))
                     pos2_x = max(0, min(asteroid.rect.centerx + 20, WIDTH - 40))
-                    small_asteroid1 = Asteroid(pos1_x, 1)
-                    small_asteroid2 = Asteroid(pos2_x, 1)
+                    # Создаём маленькие астероиды с горизонтальной скоростью
+                    small_asteroid1 = Asteroid(pos1_x, 1, vx=-2)
+                    small_asteroid2 = Asteroid(pos2_x, 1, vx=2)
                     small_asteroid1.rect.y = asteroid.rect.centery
                     small_asteroid2.rect.y = asteroid.rect.centery
                     all_sprites.add(small_asteroid1, small_asteroid2)
@@ -337,15 +338,27 @@ while running:
                     diag_bullets.empty()
                     homing_bullets.empty()
 
-                # Спавн четырёх самолётов после смерти GodBoss
+                # Плавный вылет четырёх самолётов после смерти GodBoss
                 if isinstance(boss, GodBoss) and not planes_spawned:
                     planes_spawned = True
-                    blue = BluePlane(150, 100)
-                    green = GreenPlane(300, 100)
-                    red = RedPlane(450, 100)
-                    yellow = YellowPlane(600, 100)
+                    # Создаём самолёты, пока без позиции
+                    blue = BluePlane(0, 0)
+                    green = GreenPlane(0, 0)
+                    red = RedPlane(0, 0)
+                    yellow = YellowPlane(0, 0)
+
+                    # Задаём им цель (игрока)
                     for plane in [blue, green, red, yellow]:
                         plane.player = ship
+
+                    # Запускаем вылет из центра босса в разные стороны
+                    center_x = boss.rect.centerx
+                    center_y = boss.rect.centery
+                    blue.start_launch(center_x, center_y, -3, -2, 40)
+                    green.start_launch(center_x, center_y, 3, -2, 40)
+                    red.start_launch(center_x, center_y, -2, 2, 40)
+                    yellow.start_launch(center_x, center_y, 2, 2, 40)
+
                     all_sprites.add(blue, green, red, yellow)
                     enemy_planes.add(blue, green, red, yellow)
             break
@@ -490,7 +503,7 @@ while running:
         boss1_spawned = True
 
     # Спавн второго босса – отключаем спавн астероидов
-    if score >= 750 and not boss2_spawned and len(bosses) == 0 and not planes_spawned:
+    if score >= 0 and not boss2_spawned and len(bosses) == 0 and not planes_spawned:
         god = GodBoss(random.randint(100, WIDTH - 100), 50)
         all_sprites.add(god)
         bosses.add(god)
@@ -543,7 +556,7 @@ while running:
         bar_width = 150
         bar_height = 8
         bar_x = WIDTH - 170
-        bar_y =40
+        bar_y = 40
         pygame.draw.rect(screen, (0, 100, 0), (bar_x, bar_y, bar_width, bar_height))
         pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, bar_width * powerup_percent, bar_height))
 
