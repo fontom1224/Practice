@@ -148,7 +148,7 @@ POWERUP_DURATION = 8000
 SHOT_DELAY_BOOST = 250
 
 running = True
-space_held = False  # Флаг зажатия пробела
+space_pressed = False
 last_shot_time = 0
 font = pygame.font.Font(None, 36)
 
@@ -163,8 +163,7 @@ while running:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                space_held = True
-                # Первый выстрел сразу при нажатии
+                space_pressed = True
                 current_time = pygame.time.get_ticks()
                 if current_time - last_shot_time >= current_shot_delay:
                     bullet = Bullet(ship.rect.centerx, ship.rect.top)
@@ -180,17 +179,21 @@ while running:
                 if show_menu():
                     reset_game()
                     last_shot_time = 0
-                    space_held = False
+                    space_pressed = False
                 else:
                     running = False
                 pygame.mixer.music.unpause()
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:
-                space_held = False  # Отпустили пробел - прекращаем стрельбу
+                space_pressed = False
 
-    # Автоматическая стрельба при зажатом пробеле
-    if space_held:
+    current_time = pygame.time.get_ticks()
+    if powerup_active and current_time >= powerup_end_time:
+        powerup_active = False
+        current_shot_delay = BASE_SHOT_DELAY
+
+    if space_pressed:
         current_time = pygame.time.get_ticks()
         if current_time - last_shot_time >= current_shot_delay:
             bullet = Bullet(ship.rect.centerx, ship.rect.top)
@@ -199,11 +202,6 @@ while running:
             if shoot_sound:
                 shoot_sound.play()
             last_shot_time = current_time
-
-    current_time = pygame.time.get_ticks()
-    if powerup_active and current_time >= powerup_end_time:
-        powerup_active = False
-        current_shot_delay = BASE_SHOT_DELAY
 
     keys = pygame.key.get_pressed()
     ship.update(keys)
@@ -232,8 +230,8 @@ while running:
                     all_sprites.add(net)
                     net_bullets.add(net)
                 elif pattern == 2:
-                    diag1 = DiagBullet(boss.rect.centerx, boss.rect.bottom, math.pi / 4)
-                    diag2 = DiagBullet(boss.rect.centerx, boss.rect.bottom, -math.pi / 4)
+                    diag1 = DiagBullet(boss.rect.centerx, boss.rect.bottom, math.pi/4)
+                    diag2 = DiagBullet(boss.rect.centerx, boss.rect.bottom, -math.pi/4)
                     all_sprites.add(diag1, diag2)
                     diag_bullets.add(diag1, diag2)
                 elif pattern == 3:
@@ -257,8 +255,8 @@ while running:
                 all_sprites.add(net)
                 net_bullets.add(net)
             elif isinstance(plane, RedPlane):
-                diag1 = DiagBullet(plane.rect.centerx, plane.rect.bottom, math.pi / 4)
-                diag2 = DiagBullet(plane.rect.centerx, plane.rect.bottom, -math.pi / 4)
+                diag1 = DiagBullet(plane.rect.centerx, plane.rect.bottom, math.pi/4)
+                diag2 = DiagBullet(plane.rect.centerx, plane.rect.bottom, -math.pi/4)
                 all_sprites.add(diag1, diag2)
                 diag_bullets.add(diag1, diag2)
             elif isinstance(plane, YellowPlane):
@@ -266,7 +264,7 @@ while running:
                 all_sprites.add(homing)
                 homing_bullets.add(homing)
 
-    # Спавн астероидов
+    # Спавн астероидов (только если разрешено)
     if asteroid_spawn_enabled:
         spawn_timer += 1
         if spawn_timer > 30:
@@ -285,7 +283,6 @@ while running:
                 if dead_asteroid_sound:
                     dead_asteroid_sound.play()
                 score += asteroid.points
-
                 drop_chance = 0.3 if asteroid.asteroid_type == 2 else 0.15
                 if random.random() < drop_chance:
                     powerup = PowerUp(asteroid.rect.centerx, asteroid.rect.centery)
@@ -323,8 +320,6 @@ while running:
                     medkit = Medkit(boss.rect.centerx, boss.rect.centery)
                     all_sprites.add(medkit)
                     medkits.add(medkit)
-
-                if isinstance(boss, Boss):
                     for b in list(boss_bullets):
                         b.kill()
                     boss_bullets.empty()
@@ -342,6 +337,7 @@ while running:
                     diag_bullets.empty()
                     homing_bullets.empty()
 
+                # Спавн четырёх самолётов после смерти GodBoss
                 if isinstance(boss, GodBoss) and not planes_spawned:
                     planes_spawned = True
                     blue = BluePlane(150, 100)
@@ -365,7 +361,7 @@ while running:
                     dead_asteroid_sound.play()
             break
 
-    # Столкновения пуль с жёлтыми пулями
+    # Столкновения пуль с жёлтыми самонаводящимися пулями
     for bullet in bullets:
         collided = pygame.sprite.spritecollide(bullet, homing_bullets, True)
         for homing in collided:
@@ -391,7 +387,7 @@ while running:
             update_hearts()
             medkits_collected += 1
 
-    # Столкновение с астероидами
+    # Столкновение корабля с астероидами
     if pygame.sprite.spritecollide(ship, asteroids, True):
         lives -= 1
         if lives <= 0:
@@ -402,14 +398,14 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
-                space_held = False
+                space_pressed = False
             else:
                 running = False
             pygame.mixer.music.unpause()
         else:
             update_hearts()
 
-    # Столкновения с пулями боссов
+    # Столкновение с пулями боссов
     if pygame.sprite.spritecollide(ship, boss_bullets, True):
         lives -= 1
         if lives <= 0:
@@ -420,14 +416,14 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
-                space_held = False
+                space_pressed = False
             else:
                 running = False
             pygame.mixer.music.unpause()
         else:
             update_hearts()
 
-    # Столкновения с лазерными пулями
+    # Столкновение с лазерными пулями
     if pygame.sprite.spritecollide(ship, laser_bullets, True):
         lives -= 1
         if lives <= 0:
@@ -438,19 +434,19 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
-                space_held = False
+                space_pressed = False
             else:
                 running = False
             pygame.mixer.music.unpause()
         else:
             update_hearts()
 
-    # Столкновения с сетью
+    # Столкновение с сетью
     net_hits = pygame.sprite.spritecollide(ship, net_bullets, True)
     for net in net_hits:
         ship.slow_timer = 180
 
-    # Столкновения с диагональными пулями
+    # Столкновение с диагональными пулями
     if pygame.sprite.spritecollide(ship, diag_bullets, True):
         lives -= 1
         if lives <= 0:
@@ -461,14 +457,14 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
-                space_held = False
+                space_pressed = False
             else:
                 running = False
             pygame.mixer.music.unpause()
         else:
             update_hearts()
 
-    # Столкновения с самонаводящимися пулями
+    # Столкновение с самонаводящимися пулями
     if pygame.sprite.spritecollide(ship, homing_bullets, True):
         lives -= 1
         if lives <= 0:
@@ -479,20 +475,21 @@ while running:
             if show_menu():
                 reset_game()
                 last_shot_time = 0
-                space_held = False
+                space_pressed = False
             else:
                 running = False
             pygame.mixer.music.unpause()
         else:
             update_hearts()
 
-    # Спавн боссов
+    # Спавн первого босса
     if score >= 250 and not boss1_spawned and len(bosses) == 0 and not boss2_spawned:
         boss = Boss(random.randint(100, WIDTH - 100), 50)
         all_sprites.add(boss)
         bosses.add(boss)
         boss1_spawned = True
 
+    # Спавн второго босса – отключаем спавн астероидов
     if score >= 750 and not boss2_spawned and len(bosses) == 0 and not planes_spawned:
         god = GodBoss(random.randint(100, WIDTH - 100), 50)
         all_sprites.add(god)
@@ -501,13 +498,14 @@ while running:
         asteroid_spawn_enabled = False
         print("Второй босс появился! Спавн астероидов остановлен.")
 
+    # Если самолёты были созданы и все уничтожены – возобновляем спавн астероидов
     if planes_spawned and len(enemy_planes) == 0 and not asteroid_spawn_enabled:
         asteroid_spawn_enabled = True
         print("Все самолёты уничтожены! Спавн астероидов возобновлён.")
 
     all_sprites.draw(screen)
 
-    # Полоски здоровья
+    # Полоски здоровья боссов
     for boss in bosses:
         max_health = 20 if isinstance(boss, GodBoss) else 10
         health_percent = boss.health / max_health
@@ -520,6 +518,7 @@ while running:
         boss_text = font.render("БОСС", True, (255, 100, 100))
         screen.blit(boss_text, (WIDTH // 2 - 30, 15))
 
+    # Полоски здоровья самолётов
     for plane in enemy_planes:
         health_percent = plane.health / 3
         bar_width = 40
@@ -544,7 +543,7 @@ while running:
         bar_width = 150
         bar_height = 8
         bar_x = WIDTH - 170
-        bar_y = 40
+        bar_y =40
         pygame.draw.rect(screen, (0, 100, 0), (bar_x, bar_y, bar_width, bar_height))
         pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, bar_width * powerup_percent, bar_height))
 
