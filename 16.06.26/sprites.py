@@ -8,16 +8,14 @@ pygame.mixer.init()
 shoot_sound = pygame.mixer.Sound('assets/OneShoot.mp3')
 
 def safe_load_image(path, default_size=(50, 50)):
-    """Безопасно загружает изображение, возвращает поверхность или чёрный прямоугольник."""
     try:
         img = pygame.image.load(path).convert_alpha()
         return img
     except (pygame.error, FileNotFoundError):
         print(f"Предупреждение: не удалось загрузить {path}, использую заглушку")
         surf = pygame.Surface(default_size, pygame.SRCALPHA)
-        surf.fill((255, 0, 255))  # яркий цвет для отладки
+        surf.fill((255, 0, 255))
         return surf
-
 
 class Ship(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -31,7 +29,6 @@ class Ship(pygame.sprite.Sprite):
         self.speed = self.base_speed
         self.slow_timer = 0
         self.slow_factor = 0.5
-        # Неуязвимость
         self.invincible = False
         self.invincible_end_time = 0
 
@@ -47,7 +44,6 @@ class Ship(pygame.sprite.Sprite):
             self.invincible = False
             self.image = self.base_image.copy()
         else:
-            # Мигание: меняем прозрачность каждые 100 мс
             alpha = 128 if (current_time // 100) % 2 == 0 else 255
             self.image = self.base_image.copy()
             self.image.set_alpha(alpha)
@@ -69,7 +65,6 @@ class Ship(pygame.sprite.Sprite):
         if keys[pygame.K_DOWN] and self.rect.bottom < 600:
             self.rect.y += self.speed
 
-
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -77,17 +72,32 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = -7
+        self.damage = 1   # обычный урон
 
     def update(self):
         self.rect.y += self.speed
         if self.rect.bottom < 0:
             self.kill()
 
+# ----- УСИЛЕННАЯ ПУЛЯ (тройной урон) -----
+class PowerBullet(Bullet):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.damage = 3
+        try:
+            self.image = pygame.image.load('assets/powerbullet.png').convert_alpha()
+        except:
+            self.image = pygame.Surface((12, 24), pygame.SRCALPHA)
+            self.image.fill((255, 255, 0))
+            pygame.draw.rect(self.image, (255, 200, 0), self.image.get_rect(), 2)
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
 
+# ----- АСТЕРОИДЫ -----
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, x, asteroid_type=1, vx=0):
         super().__init__()
-        self.vx = vx  # горизонтальная скорость
+        self.vx = vx
         if asteroid_type == 1:
             self.image_path = 'assets/asteroid1.png'
             self.size_factor = 1.3
@@ -117,13 +127,11 @@ class Asteroid(pygame.sprite.Sprite):
             self.rect.right < 0 or self.rect.left > 800):
             self.kill()
 
-    def take_damage(self):
-        self.health -= 1
-        if self.health <= 0:
-            return True
-        return False
+    def take_damage(self, damage=1):
+        self.health -= damage
+        return self.health <= 0
 
-
+# ----- СЕРДЕЧКИ (жизни) -----
 class Hp(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -133,7 +141,7 @@ class Hp(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-
+# ----- ПУЛИ БОССОВ -----
 class BossBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -149,7 +157,7 @@ class BossBullet(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
-
+# ----- ПЕРВЫЙ БОСС -----
 class Boss(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -189,14 +197,14 @@ class Boss(pygame.sprite.Sprite):
             return True
         return False
 
-    def take_damage(self):
-        self.health -= 1
+    def take_damage(self, damage=1):
+        self.health -= damage
         if self.health <= 0:
             self.kill()
             return True
         return False
 
-
+# ----- АПТЕЧКА -----
 class Medkit(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -212,7 +220,7 @@ class Medkit(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
-
+# ----- БОНУС УСКОРЕНИЯ -----
 class PowerUp(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -228,7 +236,7 @@ class PowerUp(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
-
+# ----- БОГ-АСТЕРОИД (второй босс) -----
 class GodBoss(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -239,7 +247,7 @@ class GodBoss(pygame.sprite.Sprite):
         self.speed = 2
         self.health = 20
         self.points = 200
-        self.homing_chance = 0.05   # 5% шанс НЕ стрелять (исправлено)
+        self.homing_chance = 0.05
 
         self.direction = 1
         self.change_dir_timer = 0
@@ -274,20 +282,19 @@ class GodBoss(pygame.sprite.Sprite):
         self.shoot_timer += 1
         if self.shoot_timer >= self.shoot_delay:
             self.shoot_timer = 0
-            # Исправлено: только 5% шанс пропустить выстрел для самонаводящихся пуль
             if self.attack_pattern == 3 and random.random() < self.homing_chance:
                 return False
             return True
         return False
 
-    def take_damage(self):
-        self.health -= 1
+    def take_damage(self, damage=1):
+        self.health -= damage
         if self.health <= 0:
             self.kill()
             return True
         return False
 
-
+# ----- ТИПЫ ПУЛЬ ДЛЯ БОССОВ И САМОЛЁТОВ -----
 class LaserBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -302,7 +309,6 @@ class LaserBullet(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
-
 class NetBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -316,7 +322,6 @@ class NetBullet(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if self.rect.top > 600:
             self.kill()
-
 
 class DiagBullet(pygame.sprite.Sprite):
     def __init__(self, x, y, angle):
@@ -335,7 +340,6 @@ class DiagBullet(pygame.sprite.Sprite):
         if (self.rect.top > 600 or self.rect.bottom < 0 or
             self.rect.left < 0 or self.rect.right > 800):
             self.kill()
-
 
 class HomingBullet(pygame.sprite.Sprite):
     def __init__(self, x, y, target):
@@ -361,7 +365,7 @@ class HomingBullet(pygame.sprite.Sprite):
             self.rect.left < 0 or self.rect.right > 800):
             self.kill()
 
-
+# ----- САМОЛЁТЫ (миньоны) -----
 class EnemyPlaneBase(pygame.sprite.Sprite):
     def __init__(self, x, y, image_path, shoot_delay=60, move_speed=2):
         super().__init__()
@@ -377,17 +381,15 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
         self.move_speed = move_speed
         self.direction = 1
 
-        # Параметры вылета
         self.launch_mode = False
         self.launch_vx = 0
         self.launch_vy = 0
         self.launch_timer = 0
 
-        # ----- Настройки очереди и паузы -----
-        self.shots_per_burst = 3 #сколько выстрелов за одну очередь
-        self.shots_done = 0        # счётчик сделанных выстрелов в очереди
-        self.burst_pause = 180   # пауза после очереди (кадров)
-        self.pause_timer = 0       # текущий таймер паузы
+        self.shots_per_burst = 3
+        self.shots_done = 0
+        self.burst_pause = 180
+        self.pause_timer = 0
 
     def start_launch(self, start_x, start_y, vx, vy, duration=40):
         self.rect.centerx = start_x
@@ -398,7 +400,6 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
         self.launch_timer = duration
 
     def update(self):
-        # Режим вылета
         if self.launch_mode:
             self.rect.x += self.launch_vx
             self.rect.y += self.launch_vy
@@ -407,7 +408,6 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
                 self.launch_mode = False
             return False
 
-        # Движение
         self.rect.x += self.move_speed * self.direction
         if self.rect.right >= 800:
             self.rect.right = 800
@@ -416,12 +416,10 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
             self.rect.left = 0
             self.direction = 1
 
-        # Удаление за экраном
         if self.rect.top > 600 or self.rect.bottom < 0 or self.rect.left < 0 or self.rect.right > 800:
             self.kill()
             return False
 
-        # Стрельба очередями с паузой
         if self.pause_timer > 0:
             self.pause_timer -= 1
             return False
@@ -436,64 +434,119 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
             return True
         return False
 
-    def take_damage(self):
-        self.health -= 1
+    def take_damage(self, damage=1):
+        self.health -= damage
         if self.health <= 0:
             self.kill()
             return True
         return False
 
-
 class BluePlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/blue.png', shoot_delay=100, move_speed=2)
-
-
 
 class GreenPlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/green.png', shoot_delay=60, move_speed=2)
 
-
 class RedPlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/red.png', shoot_delay=90, move_speed=2)
-
 
 class YellowPlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/yellow.png', shoot_delay=120, move_speed=2)
 
+# ----- ТРЕТИЙ БОСС (финальный) -----
 class ThirdBoss(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/avenger.png')
+        self.original_image = safe_load_image('assets/avenger.png')
+        self.image = self.original_image.copy()
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.speed = 2
-        self.health = 30
+        
+        self.base_speed = 2
+        self.speed = self.base_speed
+        self.health = 50
         self.points = 300
+        
         self.direction = 1
         self.change_dir_timer = 0
-        self.dir_interval = random.randint(60, 180)
+        self.dir_interval = random.randint(80, 150)
+
+        self.pattern = 0
+        self.pattern_timer = 0
+        self.pattern_interval = 150
         self.shoot_timer = 0
-        self.shoot_delay = 40
+        self.base_shoot_delay = 40
+        self.shoot_delay = self.base_shoot_delay
 
-    def update(self):
-        self.rect.x += self.speed * self.direction
-        if self.rect.left < 0:
-            self.rect.left = 0
-            self.direction = 1
-        if self.rect.right > 800:
-            self.rect.right = 800
-            self.direction = -1
+        self.y_speed = 1
+        self.y_direction = 1
+        self.start_y = y
+        self.y_range = 40
 
-        self.change_dir_timer += 1
-        if self.change_dir_timer >= self.dir_interval:
-            self.direction *= -1
-            self.change_dir_timer = 0
-            self.dir_interval = random.randint(60, 180)
+        self.phase2 = False
+        self.alpha = 255
+        self.alpha_change = -3
+        self.spiral_angle = 0
+
+    def update(self, player=None):
+        if self.phase2 and player is not None:
+            self.speed = self.base_speed * 1.4
+            if self.rect.centerx < player.rect.centerx - 20:
+                self.rect.x += self.speed
+            elif self.rect.centerx > player.rect.centerx + 20:
+                self.rect.x -= self.speed
+        else:
+            self.rect.x += self.speed * self.direction
+            if self.rect.left < 0:
+                self.rect.left = 0
+                self.direction = 1
+            if self.rect.right > 800:
+                self.rect.right = 800
+                self.direction = -1
+
+            self.change_dir_timer += 1
+            if self.change_dir_timer >= self.dir_interval:
+                self.direction *= -1
+                self.change_dir_timer = 0
+                self.dir_interval = random.randint(80, 150)
+
+        current_y_speed = self.y_speed * 1.5 if self.phase2 else self.y_speed
+        self.rect.y += current_y_speed * self.y_direction
+        y_range = 60 if self.phase2 else self.y_range
+        
+        if (self.rect.y < self.start_y - y_range or 
+            self.rect.y > self.start_y + y_range):
+            self.y_direction *= -1
+
+        if self.health <= 25 and not self.phase2:
+            self.phase2 = True
+            self.pattern_interval = 80
+            self.base_shoot_delay = 25
+            self.shoot_delay = self.base_shoot_delay
+
+        if self.phase2:
+            self.alpha += self.alpha_change
+            if self.alpha <= 100 or self.alpha >= 255:
+                self.alpha_change *= -1
+                self.alpha = max(100, min(255, self.alpha))
+            self.image = self.original_image.copy()
+            self.image.set_alpha(int(self.alpha))
+        else:
+            self.image = self.original_image.copy()
+            self.image.set_alpha(255)
+
+        self.pattern_timer += 1
+        if self.pattern_timer >= self.pattern_interval:
+            self.pattern_timer = 0
+            if self.phase2:
+                self.pattern = (self.pattern + 1) % 5
+            else:
+                self.pattern = (self.pattern + 1) % 4
 
         self.shoot_timer += 1
         if self.shoot_timer >= self.shoot_delay:
@@ -501,8 +554,66 @@ class ThirdBoss(pygame.sprite.Sprite):
             return True
         return False
 
-    def take_damage(self):
-        self.health -= 1
+    def fire(self, player):
+        bullets = []
+        x, y = self.rect.centerx, self.rect.bottom
+
+        def add_homing(count=1):
+            for _ in range(count):
+                offset = random.randint(-15, 15)
+                bullets.append(HomingBullet(x + offset, y, player))
+
+        if not self.phase2:
+            if self.pattern == 0:
+                dx = player.rect.centerx - x
+                dy = player.rect.centery - y
+                base_angle = math.atan2(dx, dy)
+                for offset in [-0.15, 0, 0.15]:
+                    bullets.append(DiagBullet(x, y, base_angle + offset))
+            elif self.pattern == 1:
+                for i in range(-2, 3):
+                    angle = math.radians(i * 20)
+                    bullets.append(DiagBullet(x, y, angle))
+            elif self.pattern == 2:
+                bullets.append(LaserBullet(150, y))
+                bullets.append(LaserBullet(650, y))
+                bullets.append(BossBullet(x - 30, y))
+                bullets.append(BossBullet(x + 30, y))
+            elif self.pattern == 3:
+                add_homing(2)
+        else:
+            if self.pattern == 0:
+                self.spiral_angle = (self.spiral_angle + 15) % 360
+                for i in range(8):
+                    angle = math.radians(self.spiral_angle + i * 45)
+                    bullets.append(DiagBullet(x, y, angle))
+            elif self.pattern == 1:
+                bullets.append(NetBullet(x - 180, y))
+                bullets.append(NetBullet(x + 180, y))
+                bullets.append(LaserBullet(x, y))
+                add_homing(1)
+            elif self.pattern == 2:
+                dx = player.rect.centerx - x
+                dy = player.rect.centery - y
+                base_angle = math.atan2(dx, dy)
+                for offset in [-0.1, 0, 0.1]:
+                    b = DiagBullet(x, y, base_angle + offset)
+                    b.speed = 7
+                    bullets.append(b)
+            elif self.pattern == 3:
+                for i in range(5):
+                    bullets.append(DiagBullet(x - 50, y, math.radians(45)))
+                    bullets.append(DiagBullet(x + 50, y, math.radians(-45)))
+            elif self.pattern == 4:
+                for i in range(-4, 5):
+                    angle = math.radians(i * 18)
+                    bullets.append(DiagBullet(x, y, angle))
+                add_homing(1)
+
+        return bullets
+
+    def take_damage(self, damage=1):
+        self.health -= damage
         if self.health <= 0:
             self.kill()
             return True
