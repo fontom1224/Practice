@@ -1,3 +1,4 @@
+# main.py
 import pygame
 import random
 import math
@@ -5,17 +6,14 @@ import sys
 import os
 import sprites
 from sprites import *
-from achievements import AchievementManager  # новый импорт
+from achievements import AchievementManager
 
-# ---------- Функция для корректного пути к ресурсам ----------
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
     except AttributeError:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
-
-# -------------------------------------------------------------
 
 pygame.init()
 pygame.mixer.init()
@@ -27,20 +25,16 @@ clock = pygame.time.Clock()
 bg_original = pygame.image.load(resource_path('assets/fon.png'))
 bg_image = pygame.transform.scale(bg_original, (800, 600))
 
-# Шрифты
 font_title = pygame.font.Font(None, 72)
 font_button = pygame.font.Font(None, 48)
 font_settings = pygame.font.Font(None, 36)
 font_pause = pygame.font.Font(None, 60)
 
-# Настройки звука
 music_volume = 1.0
 sfx_volume = 1.0
 
-# ===== СЛОЖНОСТЬ (только для отображения) =====
 difficulty = "Средняя"
 
-# ===== ЗВУКИ =====
 boom_sound = None
 dead_asteroid_sound = None
 shoot_sound = None
@@ -71,10 +65,16 @@ try:
 except FileNotFoundError as e:
     print(f"Ошибка: не найден звуковой файл - {e}")
 
-# ----- Устанавливаем глобальные звуки в модуле sprites -----
 sprites.shoot_sound = shoot_sound
 
-# ===== ПОПАПЫ =====
+def get_difficulty_params(diff):
+    if diff == "Лёгкая":
+        return 5, 600, 900
+    elif diff == "Сложная":
+        return 3, 250, 500
+    else:
+        return 4, 400, 700
+
 popup_queue = []
 popup_active = False
 popup_text = ""
@@ -108,7 +108,6 @@ def show_next_popup():
     else:
         popup_active = False
 
-# ===== ГРОМКОСТЬ =====
 def set_volumes():
     pygame.mixer.music.set_volume(music_volume)
     if dark_sound is not None:
@@ -126,7 +125,6 @@ def set_volumes():
     if transform_sound is not None:
         transform_sound.set_volume(sfx_volume)
 
-# ===== МЕНЮ НАСТРОЕК =====
 def show_settings():
     global music_volume, sfx_volume
 
@@ -251,7 +249,6 @@ def show_settings():
                 dragging_music = False
                 dragging_sfx = False
 
-# ===== СЮЖЕТ =====
 def show_story():
     story_images = []
     for i in range(1, 5):
@@ -286,7 +283,6 @@ def show_story():
         idx += 1
     pygame.mixer.music.unpause()
 
-# ===== МЕНЮ СЛОЖНОСТИ =====
 def show_difficulty_menu():
     global difficulty
 
@@ -355,17 +351,15 @@ def show_difficulty_menu():
                 if back_btn.collidepoint(event.pos):
                     return
 
-# ===== МЕНЮ ДОСТИЖЕНИЙ =====
 def show_achievements():
     back_button = pygame.Rect(WIDTH // 2 - 100, HEIGHT - 70, 200, 50)
     scroll_y = 0
     item_height = 70
     gap = 8
-    visible_height = HEIGHT - 160  # заголовок + отступ + кнопка
+    visible_height = HEIGHT - 160
     total_height = len(achievement_manager.achievements) * (item_height + gap)
     scroll_max = max(0, total_height - visible_height)
 
-    # Подсчёт разблокированных
     unlocked_count = sum(1 for ach in achievement_manager.achievements.values() if ach['unlocked'])
 
     clock = pygame.time.Clock()
@@ -376,7 +370,6 @@ def show_achievements():
         overlay.fill((10, 10, 30))
         screen.blit(overlay, (0, 0))
 
-        # Заголовок и счётчик
         title = font_title.render("ДОСТИЖЕНИЯ", True, (255, 215, 0))
         title_rect = title.get_rect(center=(WIDTH // 2, 50))
         screen.blit(title, title_rect)
@@ -388,19 +381,16 @@ def show_achievements():
         counter_rect = counter.get_rect(center=(WIDTH // 2, 90))
         screen.blit(counter, counter_rect)
 
-        # Область списка (клиппинг)
         clip_rect = pygame.Rect(20, 110, WIDTH - 40, HEIGHT - 180)
         pygame.draw.rect(screen, (30, 30, 50), clip_rect, border_radius=10)
         pygame.draw.rect(screen, (80, 80, 120), clip_rect, 2, border_radius=10)
 
-        # Рисуем достижения с учётом прокрутки
         y_start = clip_rect.y + 10
         for idx, (ach_id, ach) in enumerate(achievement_manager.achievements.items()):
             y_pos = y_start + idx * (item_height + gap) - scroll_y
             if y_pos + item_height < clip_rect.y or y_pos > clip_rect.y + clip_rect.height:
                 continue
 
-            # Фон элемента
             rect = pygame.Rect(clip_rect.x + 10, y_pos, clip_rect.width - 20, item_height)
             unlocked = ach['unlocked']
             bg_color = (40, 80, 40) if unlocked else (60, 60, 70)
@@ -408,31 +398,26 @@ def show_achievements():
             pygame.draw.rect(screen, bg_color, rect, border_radius=8)
             pygame.draw.rect(screen, border_color, rect, 2, border_radius=8)
 
-           
-            # Название (очищаем от \n)
             clean_name = ach['name'].replace('\n', '').strip()
             name_font = pygame.font.Font(None, 26)
             name_surf = name_font.render(clean_name, True, (255, 255, 255))
             screen.blit(name_surf, (rect.x + 55, rect.y + 6))
 
-            # Описание
             desc_font = pygame.font.Font(None, 18)
             desc_surf = desc_font.render(ach['description'], True, (200, 200, 200))
             screen.blit(desc_surf, (rect.x + 55, rect.y + 34))
 
-           
-        # Полоса прокрутки (если нужно)
         if scroll_max > 0:
             scroll_bar_x = WIDTH - 20
             scroll_bar_y = clip_rect.y + 10
             scroll_bar_h = clip_rect.height - 20
             scroll_bar_w = 8
-            pygame.draw.rect(screen, (60, 60, 80), (scroll_bar_x, scroll_bar_y, scroll_bar_w, scroll_bar_h), border_radius=4)
+            pygame.draw.rect(screen, (60, 60, 80), (scroll_bar_x, scroll_bar_y, scroll_bar_w, scroll_bar_h),
+                             border_radius=4)
             thumb_h = max(20, scroll_bar_h * (clip_rect.height / total_height))
             thumb_y = scroll_bar_y + (scroll_y / scroll_max) * (scroll_bar_h - thumb_h)
             pygame.draw.rect(screen, (200, 200, 220), (scroll_bar_x, thumb_y, scroll_bar_w, thumb_h), border_radius=4)
 
-        # Кнопка "Назад"
         mouse_pos = pygame.mouse.get_pos()
         color = (70, 70, 220) if back_button.collidepoint(mouse_pos) else (120, 120, 140)
         pygame.draw.rect(screen, color, back_button, border_radius=12)
@@ -455,7 +440,6 @@ def show_achievements():
                 if back_button.collidepoint(event.pos):
                     return
 
-# ===== ГЛАВНОЕ МЕНЮ =====
 def show_menu():
     play_button = pygame.Rect(WIDTH // 2 - 150, HEIGHT // 2 - 150, 300, 70)
     skull_button = pygame.Rect(WIDTH // 2 + 160, HEIGHT // 2 - 150, 70, 70)
@@ -485,7 +469,6 @@ def show_menu():
 
         mouse_pos = pygame.mouse.get_pos()
 
-        # ИГРАТЬ
         color = (50, 50, 200) if play_button.collidepoint(mouse_pos) else (100, 100, 100)
         pygame.draw.rect(screen, color, play_button)
         pygame.draw.rect(screen, (255, 255, 255), play_button, 3)
@@ -493,14 +476,12 @@ def show_menu():
         play_rect = play_text.get_rect(center=play_button.center)
         screen.blit(play_text, play_rect)
 
-        # Смайлик (сложность)
         color = (150, 150, 150) if skull_button.collidepoint(mouse_pos) else (80, 80, 80)
         pygame.draw.rect(screen, color, skull_button)
         pygame.draw.rect(screen, (255, 255, 255), skull_button, 3)
         skull_rect = skull_img.get_rect(center=skull_button.center)
         screen.blit(skull_img, skull_rect)
 
-        # СЮЖЕТ
         color = (200, 150, 50) if story_button.collidepoint(mouse_pos) else (100, 100, 100)
         pygame.draw.rect(screen, color, story_button)
         pygame.draw.rect(screen, (255, 255, 255), story_button, 3)
@@ -508,7 +489,6 @@ def show_menu():
         story_rect = story_text.get_rect(center=story_button.center)
         screen.blit(story_text, story_rect)
 
-        # НАСТРОЙКИ
         color = (50, 150, 50) if settings_button.collidepoint(mouse_pos) else (100, 100, 100)
         pygame.draw.rect(screen, color, settings_button)
         pygame.draw.rect(screen, (255, 255, 255), settings_button, 3)
@@ -516,7 +496,6 @@ def show_menu():
         settings_rect = settings_text.get_rect(center=settings_button.center)
         screen.blit(settings_text, settings_rect)
 
-        # ДОСТИЖЕНИЯ
         color = (200, 200, 50) if achievements_button.collidepoint(mouse_pos) else (100, 100, 100)
         pygame.draw.rect(screen, color, achievements_button)
         pygame.draw.rect(screen, (255, 255, 255), achievements_button, 3)
@@ -524,7 +503,6 @@ def show_menu():
         ach_rect = ach_text.get_rect(center=achievements_button.center)
         screen.blit(ach_text, ach_rect)
 
-        # ВЫХОД
         color = (200, 50, 50) if quit_button.collidepoint(mouse_pos) else (100, 100, 100)
         pygame.draw.rect(screen, color, quit_button)
         pygame.draw.rect(screen, (255, 255, 255), quit_button, 3)
@@ -552,7 +530,6 @@ def show_menu():
                 if quit_button.collidepoint(event.pos):
                     return False
 
-# ===== МЕНЮ ПАУЗЫ =====
 def show_pause_menu():
     pause_overlay = pygame.Surface((WIDTH, HEIGHT))
     pause_overlay.set_alpha(180)
@@ -608,7 +585,6 @@ def show_pause_menu():
                 if menu_button.collidepoint(event.pos):
                     return False
 
-# ===== СБРОС ИГРЫ =====
 def reset_game():
     global all_sprites, bullets, asteroids, heart_sprites, bosses, boss_bullets
     global powerups, medkits, enemy_planes, laser_bullets, net_bullets
@@ -617,6 +593,7 @@ def reset_game():
     global powerup_active, powerup_end_time, current_shot_delay, next_asteroid_spawn
     global power_shots, next_power_shot_threshold, first_power_shot_shown
     global popup_queue, popup_active
+    global asteroid_spawn_min, asteroid_spawn_max
 
     all_sprites = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
@@ -635,7 +612,9 @@ def reset_game():
     player_ship = Ship(WIDTH // 2 - 25, HEIGHT - 60)
     all_sprites.add(player_ship)
 
-    lives = 5
+    lives, asteroid_spawn_min, asteroid_spawn_max = get_difficulty_params(difficulty)
+    next_asteroid_spawn = pygame.time.get_ticks() + random.randint(asteroid_spawn_min, asteroid_spawn_max)
+
     score = 0
     boss1_spawned = False
     boss2_spawned = False
@@ -645,7 +624,6 @@ def reset_game():
     powerup_active = False
     powerup_end_time = 0
     current_shot_delay = 400
-    next_asteroid_spawn = pygame.time.get_ticks() + 500
 
     power_shots = 0
     next_power_shot_threshold = 150
@@ -667,9 +645,8 @@ def update_hearts():
         heart_sprites.add(heart)
         all_sprites.add(heart)
 
-# ==================== ОСНОВНОЙ ЦИКЛ ====================
 game_active = True
-achievement_manager = AchievementManager()  # инициализация менеджера достижений
+achievement_manager = AchievementManager()
 
 while game_active:
     if not show_menu():
@@ -709,7 +686,6 @@ while game_active:
                             shoot_sound.play()
                         last_shot_time = current_time
 
-                # Усиленный выстрел
                 if event.key == pygame.K_x and power_shots > 0:
                     pb = PowerBullet(player_ship.rect.centerx, player_ship.rect.top)
                     all_sprites.add(pb)
@@ -717,7 +693,6 @@ while game_active:
                     power_shots -= 1
                     if shoot_sound is not None:
                         shoot_sound.play()
-                    # Достижение: использование усиленного патрона
                     unlocked = achievement_manager.check_event('power_bullet_used')
                     if unlocked:
                         show_popup(f"Достижение разблокировано: {achievement_manager.achievements[unlocked]['name']}!", 3000)
@@ -766,7 +741,6 @@ while game_active:
         homing_bullets.update()
         boss_bullets.update()
 
-        # ===== СТРЕЛЬБА БОССОВ =====
         for b in bosses:
             if b.update():
                 if isinstance(b, ThirdBoss):
@@ -807,7 +781,6 @@ while game_active:
                     all_sprites.add(bb)
                     boss_bullets.add(bb)
 
-        # ===== СТРЕЛЬБА САМОЛЁТОВ =====
         for plane in enemy_planes:
             if plane.update():
                 if isinstance(plane, BluePlane):
@@ -828,15 +801,13 @@ while game_active:
                     all_sprites.add(homing)
                     homing_bullets.add(homing)
 
-        # ===== СПАВН АСТЕРОИДОВ =====
         if asteroid_spawn_enabled and current_time >= next_asteroid_spawn:
             asteroid_type = random.choices([1, 2], weights=[70, 30])[0]
             a = Asteroid(random.randint(0, WIDTH - 40), asteroid_type)
             all_sprites.add(a)
             asteroids.add(a)
-            next_asteroid_spawn = current_time + random.randint(400, 700)
+            next_asteroid_spawn = current_time + random.randint(asteroid_spawn_min, asteroid_spawn_max)
 
-        # ===== СТОЛКНОВЕНИЯ ПУЛЬ С АСТЕРОИДАМИ =====
         for b in bullets:
             collided = pygame.sprite.spritecollide(b, asteroids, False)
             for a in collided:
@@ -846,7 +817,6 @@ while game_active:
                         dead_asteroid_sound.play()
                     score += a.points
 
-                    # Достижения: очки и уничтожение астероидов
                     unlocked_score = achievement_manager.check_event('score', score)
                     if unlocked_score:
                         show_popup(f"Достижение разблокировано: {achievement_manager.achievements[unlocked_score]['name']}!", 3000)
@@ -854,7 +824,6 @@ while game_active:
                     if unlocked_ast:
                         show_popup(f"Достижение разблокировано: {achievement_manager.achievements[unlocked_ast]['name']}!", 3000)
 
-                    # Выдача усиленных патронов
                     while score >= next_power_shot_threshold:
                         power_shots += 1
                         if not first_power_shot_shown:
@@ -883,7 +852,6 @@ while game_active:
                     a.kill()
                 break
 
-        # ===== СТОЛКНОВЕНИЯ ПУЛЬ С БОССАМИ =====
         for b in bullets:
             collided = pygame.sprite.spritecollide(b, bosses, False)
             for boss_obj in collided:
@@ -891,12 +859,10 @@ while game_active:
                 if boss_obj.take_damage(b.damage):
                     score += boss_obj.points
 
-                    # Достижения: очки
                     unlocked_score = achievement_manager.check_event('score', score)
                     if unlocked_score:
                         show_popup(f"Достижение разблокировано: {achievement_manager.achievements[unlocked_score]['name']}!", 3000)
 
-                    # Определяем тип босса и разблокируем достижение
                     boss_type = None
                     if isinstance(boss_obj, Boss):
                         boss_type = 'boss'
@@ -909,7 +875,6 @@ while game_active:
                         if unlocked_boss:
                             show_popup(f"Достижение разблокировано: {achievement_manager.achievements[unlocked_boss]['name']}!", 3000)
 
-                    # Выдача усиленных патронов
                     while score >= next_power_shot_threshold:
                         power_shots += 1
                         if not first_power_shot_shown:
@@ -991,7 +956,6 @@ while game_active:
                         enemy_planes.add(blue, green, red, yellow)
                 break
 
-        # ===== СТОЛКНОВЕНИЯ ПУЛЬ С САМОЛЁТАМИ =====
         for b in bullets:
             collided = pygame.sprite.spritecollide(b, enemy_planes, False)
             for plane in collided:
@@ -999,12 +963,10 @@ while game_active:
                 if plane.take_damage(b.damage):
                     score += plane.points
 
-                    # Достижения: очки
                     unlocked_score = achievement_manager.check_event('score', score)
                     if unlocked_score:
                         show_popup(f"Достижение разблокировано: {achievement_manager.achievements[unlocked_score]['name']}!", 3000)
 
-                    # Выдача усиленных патронов
                     while score >= next_power_shot_threshold:
                         power_shots += 1
                         if not first_power_shot_shown:
@@ -1016,14 +978,12 @@ while game_active:
                         dead_asteroid_sound.play()
                 break
 
-        # ===== СТОЛКНОВЕНИЯ ПУЛЬ С ЖЁЛТЫМИ ПУЛЯМИ =====
         for b in bullets:
             collided = pygame.sprite.spritecollide(b, homing_bullets, True)
             for homing in collided:
                 b.kill()
                 break
 
-        # ===== СБОР БОНУСОВ =====
         collected = pygame.sprite.spritecollide(player_ship, powerups, True)
         for p in collected:
             if powerup_sound is not None:
@@ -1031,12 +991,10 @@ while game_active:
             powerup_active = True
             powerup_end_time = pygame.time.get_ticks() + POWERUP_DURATION
             current_shot_delay = SHOT_DELAY_BOOST
-            # Достижение: сбор ускорителя
             unlocked = achievement_manager.check_event('powerup_collected')
             if unlocked:
                 show_popup(f"Достижение разблокировано: {achievement_manager.achievements[unlocked]['name']}!", 3000)
 
-        # ===== СБОР АПТЕЧЕК =====
         collected_medkits = pygame.sprite.spritecollide(player_ship, medkits, True)
         for m in collected_medkits:
             if medkit_sound is not None:
@@ -1044,18 +1002,15 @@ while game_active:
             if lives < 5:
                 lives = min(lives + 1, 5)
                 update_hearts()
-            # Достижение: сбор аптечки
             unlocked = achievement_manager.check_event('medkit_collected')
             if unlocked:
                 show_popup(f"Достижение разблокировано: {achievement_manager.achievements[unlocked]['name']}!", 3000)
 
-        # ===== СТОЛКНОВЕНИЕ С АСТЕРОИДАМИ =====
         if pygame.sprite.spritecollide(player_ship, asteroids, True):
             if not player_ship.invincible:
                 lives -= 1
                 player_ship.set_invincible(2000)
                 if lives <= 0:
-                    # Достижение: первая смерть (если ещё не было)
                     unlocked = achievement_manager.check_event('player_died')
                     if unlocked:
                         show_popup(f"Достижение разблокировано: {achievement_manager.achievements[unlocked]['name']}!", 3000)
@@ -1075,7 +1030,6 @@ while game_active:
                 else:
                     update_hearts()
 
-        # ===== СТОЛКНОВЕНИЯ С ПУЛЯМИ БОССОВ =====
         if pygame.sprite.spritecollide(player_ship, boss_bullets, True):
             lives -= 1
             if lives <= 0:
@@ -1098,7 +1052,6 @@ while game_active:
             else:
                 update_hearts()
 
-        # ===== СТОЛКНОВЕНИЯ С ЛАЗЕРНЫМИ ПУЛЯМИ =====
         if pygame.sprite.spritecollide(player_ship, laser_bullets, True):
             lives -= 1
             if lives <= 0:
@@ -1121,12 +1074,10 @@ while game_active:
             else:
                 update_hearts()
 
-        # ===== СТОЛКНОВЕНИЯ С СЕТЬЮ =====
         net_hits = pygame.sprite.spritecollide(player_ship, net_bullets, True)
         for net in net_hits:
             player_ship.slow_timer = 180
 
-        # ===== СТОЛКНОВЕНИЯ С ДИАГОНАЛЬНЫМИ ПУЛЯМИ =====
         if pygame.sprite.spritecollide(player_ship, diag_bullets, True):
             lives -= 1
             if lives <= 0:
@@ -1149,7 +1100,6 @@ while game_active:
             else:
                 update_hearts()
 
-        # ===== СТОЛКНОВЕНИЯ С САМОНАВОДЯЩИМИСЯ ПУЛЯМИ =====
         if pygame.sprite.spritecollide(player_ship, homing_bullets, True):
             lives -= 1
             if lives <= 0:
@@ -1172,7 +1122,6 @@ while game_active:
             else:
                 update_hearts()
 
-        # ===== СТОЛКНОВЕНИЕ С БОССАМИ (отталкивание) =====
         for boss_obj in bosses:
             if pygame.sprite.collide_rect(player_ship, boss_obj):
                 if not player_ship.invincible:
@@ -1197,13 +1146,11 @@ while game_active:
                         pygame.mixer.music.unpause()
                     else:
                         update_hearts()
-                    # Отталкиваем игрока
                     if player_ship.rect.centery < boss_obj.rect.centery:
                         player_ship.rect.y -= 15
                     else:
                         player_ship.rect.y += 15
 
-        # ===== СПАВН БОССОВ =====
         if score >= 250 and not boss1_spawned and len(bosses) == 0 and not boss2_spawned:
             boss_obj = Boss(random.randint(100, WIDTH - 100), 50)
             all_sprites.add(boss_obj)
@@ -1244,10 +1191,8 @@ while game_active:
         if planes_spawned and len(enemy_planes) == 0 and not asteroid_spawn_enabled:
             asteroid_spawn_enabled = True
 
-        # ===== ОТРИСОВКА =====
         all_sprites.draw(screen)
 
-        # Полоски здоровья боссов
         for boss_obj in bosses:
             if isinstance(boss_obj, ThirdBoss):
                 max_health = 50
@@ -1265,7 +1210,6 @@ while game_active:
             boss_text = font.render("БОСС", True, (255, 100, 100))
             screen.blit(boss_text, (WIDTH // 2 - 30, 15))
 
-        # Полоски здоровья самолётов
         for plane in enemy_planes:
             health_percent = plane.health / 3
             bar_width = 40
@@ -1275,13 +1219,11 @@ while game_active:
             pygame.draw.rect(screen, (100, 100, 100), (bar_x, bar_y, bar_width, bar_height))
             pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, bar_width * health_percent, bar_height))
 
-        # Счёт и усиленные патроны
         score_text = font.render(f"Счёт: {score}", True, (255, 255, 255))
         screen.blit(score_text, (10, 50))
         power_text = font.render(f"Усиленные: {power_shots}", True, (255, 255, 255))
         screen.blit(power_text, (10, 90))
 
-        # Индикатор ускорения
         if powerup_active:
             time_left = max(0, (powerup_end_time - pygame.time.get_ticks()) // 1000)
             boost_text = font.render(f"УСКОРЕНИЕ: {time_left}с", True, (0, 255, 0))
@@ -1294,14 +1236,13 @@ while game_active:
             pygame.draw.rect(screen, (0, 100, 0), (bar_x, bar_y, bar_width, bar_height))
             pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, bar_width * powerup_percent, bar_height))
 
-        # Попап
         if popup_active:
             elapsed = pygame.time.get_ticks() - popup_start_time
             if elapsed >= popup_duration:
                 show_next_popup()
             else:
                 popup_surf = pygame.Surface((400, 130), pygame.SRCALPHA)
-                popup_surf.fill((0, 0, 0, 200))
+                popup_surf.fill((0, 0, 0, 125))
                 pygame.draw.rect(popup_surf, (255, 255, 255), popup_surf.get_rect(), 2)
                 if face_img is not None:
                     face_scaled = pygame.transform.scale(face_img, (60, 60))
