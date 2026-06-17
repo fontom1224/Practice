@@ -1,0 +1,138 @@
+@startuml
+!pragma useVerticalIf true
+skinparam classAttributeIconSize 0
+skinparam nodesep 10
+skinparam ranksep 20
+skinparam classFontSize 10
+skinparam classAttributeFontSize 9
+skinparam classMethodFontSize 9
+skinparam defaultFontSize 9
+
+left to right direction
+
+' === Базовые спрайты ===
+class Ship {
+  - speed, slow_timer, invincible
+  + update(keys)
+  + set_invincible(duration)
+}
+
+class Bullet {
+  - speed, damage
+  + update()
+}
+
+class PowerBullet {
+  + __init__(x,y)
+}
+
+class Asteroid {
+  - health, speed, points, type
+  + update()
+  + take_damage(d)
+}
+
+class Hp {
+  + __init__(x,y)
+}
+
+' === Боссы и их снаряды ===
+class BossBullet {
+  + update()
+}
+
+class Boss {
+  - health, speed, direction
+  + update() : bool
+  + take_damage(d) : bool
+}
+
+class GodBoss {
+  - health, pattern
+  + update() : bool
+  + take_damage(d) : bool
+}
+
+class ThirdBoss {
+  - health, phase2
+  + update(player) : bool
+  + fire(player) : list
+  + take_damage(d) : bool
+}
+
+class LaserBullet {
+  + update()
+}
+
+class NetBullet {
+  + update()
+}
+
+class DiagBullet {
+  + update()
+}
+
+class HomingBullet {
+  - target
+  + update()
+}
+
+' === Вражеские самолёты ===
+class EnemyPlaneBase {
+  - health, shoot_delay
+  + update() : bool
+  + take_damage(d) : bool
+  + start_launch(...)
+}
+
+class BluePlane {}
+class GreenPlane {}
+class RedPlane {}
+class YellowPlane {}
+
+' === Бонусы и частицы ===
+class Medkit {
+  + update()
+}
+
+class PowerUp {
+  + update()
+}
+
+class Particle {
+  + update()
+}
+
+' === Менеджер достижений ===
+class AchievementManager {
+  - achievements : dict
+  + load()
+  + save()
+  + unlock(id) : bool
+  + add_progress(id, amount) : bool
+  + check_event(type, value) : str
+}
+
+' === Отношения ===
+Bullet <|-- PowerBullet
+EnemyPlaneBase <|-- BluePlane
+EnemyPlaneBase <|-- GreenPlane
+EnemyPlaneBase <|-- RedPlane
+EnemyPlaneBase <|-- YellowPlane
+
+ThirdBoss ..> LaserBullet : creates
+ThirdBoss ..> NetBullet : creates
+ThirdBoss ..> DiagBullet : creates
+ThirdBoss ..> HomingBullet : creates
+ThirdBoss ..> BossBullet : creates
+
+Boss ..> BossBullet : creates
+GodBoss ..> LaserBullet : creates
+GodBoss ..> NetBullet : creates
+GodBoss ..> DiagBullet : creates
+GodBoss ..> HomingBullet : creates
+
+' Зависимость AchievementManager -> Player (не явная, но для связи)
+AchievementManager --> Ship : tracks
+
+@enduml
