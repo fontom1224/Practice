@@ -480,7 +480,7 @@ def show_menu():
         screen.blit(overlay, (0, 0))
 
         title = font_title.render("ASTEROID SHOOTER", True, (255, 255, 255))
-        title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 4))
+        title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 8))
         screen.blit(title, title_rect)
 
         mouse_pos = pygame.mouse.get_pos()
