@@ -10,19 +10,19 @@ class AchievementManager:
 
     def _default_achievements(self):
         return {
-            'first_score': {'id':'first_score', 'name':'\nНачало положено', 'description':'\nНаберите 100 очков', 'unlocked':False, 'progress':0, 'target':100},
-            'score_500': {'id':'score_500', 'name':'\n500', 'description':'\nНаберите 500 очков', 'unlocked':False, 'progress':0, 'target':500},
-            'score_1000': {'id':'score_1000', 'name':'\nIt takes.. one', 'description':'\nНаберите 1000 очков', 'unlocked':False, 'progress':0, 'target':1000},
-            'score_2000': {'id':'score_2000', 'name':'\nIt takes two', 'description':'\nНаберите 2000 очков', 'unlocked':False, 'progress':0, 'target':2000},
-            'boss_killer': {'id':'boss_killer', 'name':'\nЭто ж Красный', 'description':'\nПобедите первого босса', 'unlocked':False, 'progress':0, 'target':0},
-            'god_slayer': {'id':'god_slayer', 'name':'\nБогоубийца', 'description':'\nПобедите Бога-Астероида', 'unlocked':False, 'progress':0, 'target':0},
-            'final_boss': {'id':'final_boss', 'name':'\nДа здравствует король', 'description':'\nПобедите финального босса', 'unlocked':False, 'progress':0, 'target':0},
-            'medkit_collector': {'id':'medkit_collector', 'name':'\nКазуал', 'description':'\nСоберите 5 аптечек', 'unlocked':False, 'progress':0, 'target':5},
-            'powerup_collector': {'id':'powerup_collector', 'name':'\nСкорострел', 'description':'\nСоберите 5 ускорителей', 'unlocked':False, 'progress':0, 'target':5},
-            'power_bullet_user': {'id':'power_bullet_user', 'name':'\nСуперсаян', 'description':'\nИспользуйте 10 усиленных патронов', 'unlocked':False, 'progress':0, 'target':10},
-            'asteroid_hunter': {'id':'asteroid_hunter', 'name':'\nБум', 'description':'\nУничтожьте 50 астероидов', 'unlocked':False, 'progress':0, 'target':50},
-            'asteroid_master': {'id':'asteroid_master', 'name':'\nБольшой бум', 'description':'\nУничтожьте 100 астероидов', 'unlocked':False, 'progress':0, 'target':100},
-            'first_death': {'id':'first_death', 'name':'\nТрупак', 'description':'\nУмрите впервые', 'unlocked':False, 'progress':0, 'target':0},
+            'first_score': {'id':'first_score', 'name':'Начало положено', 'description':'Наберите 100 очков', 'unlocked':False, 'progress':0, 'target':100},
+            'score_500': {'id':'score_500', 'name':'500', 'description':'Наберите 500 очков', 'unlocked':False, 'progress':0, 'target':500},
+            'score_1000': {'id':'score_1000', 'name':'It takes.. one', 'description':'Наберите 1000 очков', 'unlocked':False, 'progress':0, 'target':1000},
+            'score_2000': {'id':'score_2000', 'name':'It takes two', 'description':'Наберите 2000 очков', 'unlocked':False, 'progress':0, 'target':2000},
+            'boss_killer': {'id':'boss_killer', 'name':'Это ж Красный', 'description':'Победите первого босса', 'unlocked':False, 'progress':0, 'target':0},
+            'god_slayer': {'id':'god_slayer', 'name':'Богоубийца', 'description':'Победите Бога-Астероида', 'unlocked':False, 'progress':0, 'target':0},
+            'final_boss': {'id':'final_boss', 'name':'Да здравствует король', 'description':'Победите финального босса', 'unlocked':False, 'progress':0, 'target':0},
+            'medkit_collector': {'id':'medkit_collector', 'name':'Казуал', 'description':'Соберите 5 аптечек', 'unlocked':False, 'progress':0, 'target':5},
+            'powerup_collector': {'id':'powerup_collector', 'name':'Скорострел', 'description':'Соберите 5 ускорителей', 'unlocked':False, 'progress':0, 'target':5},
+            'power_bullet_user': {'id':'power_bullet_user', 'name':'Суперсаян', 'description':'Используйте 10 усиленных патронов', 'unlocked':False, 'progress':0, 'target':10},
+            'asteroid_hunter': {'id':'asteroid_hunter', 'name':'Бум', 'description':'Уничтожьте 50 астероидов', 'unlocked':False, 'progress':0, 'target':50},
+            'asteroid_master': {'id':'asteroid_master', 'name':'Большой бум', 'description':'Уничтожьте 100 астероидов', 'unlocked':False, 'progress':0, 'target':100},
+            'first_death': {'id':'first_death', 'name':'Трупак', 'description':'Умрите впервые', 'unlocked':False, 'progress':0, 'target':0},
         }
 
     def _ensure_defaults(self):
@@ -67,12 +67,9 @@ class AchievementManager:
                 if ach['progress'] >= ach['target']:
                     self.unlock(ach_id)
                     return True
-                else:
-                    self.save()
         return False
 
     def check_event(self, event_type, value=None):
-        """Обработка игровых событий, возвращает ID разблокированного достижения или None."""
         if event_type == 'score':
             for ach_id in ['first_score', 'score_500', 'score_1000', 'score_2000']:
                 if ach_id in self.achievements and not self.achievements[ach_id]['unlocked']:
@@ -95,7 +92,6 @@ class AchievementManager:
             if self.add_progress('power_bullet_user'):
                 return 'power_bullet_user'
         elif event_type == 'asteroid_destroyed':
-            # проверяем оба достижения, возвращаем то, которое разблокировалось
             if not self.achievements['asteroid_hunter']['unlocked']:
                 if self.add_progress('asteroid_hunter'):
                     return 'asteroid_hunter'
@@ -106,4 +102,4 @@ class AchievementManager:
             if not self.achievements['first_death']['unlocked']:
                 if self.unlock('first_death'):
                     return 'first_death'
-        return None
+        return Nones
