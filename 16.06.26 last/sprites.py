@@ -1,13 +1,27 @@
 import pygame
 import random
 import math
+import sys
+import os
+
+# ---------- Глобальная переменная для звука (устанавливается из main.py) ----------
+shoot_sound = None
+
+# ---------- Функция для корректного пути к ресурсам ----------
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# -------------------------------------------------------------
 
 pygame.init()
 pygame.mixer.init()
 
-shoot_sound = pygame.mixer.Sound('assets/OneShoot.mp3')
-
 def safe_load_image(path, default_size=(50, 50)):
+    """Безопасно загружает изображение, возвращает поверхность или заглушку."""
     try:
         img = pygame.image.load(path).convert_alpha()
         return img
@@ -17,10 +31,11 @@ def safe_load_image(path, default_size=(50, 50)):
         surf.fill((255, 0, 255))
         return surf
 
+
 class Ship(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.base_image = safe_load_image('assets/ship.png')
+        self.base_image = safe_load_image(resource_path('assets/ship.png'))
         self.image = self.base_image.copy()
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -65,27 +80,30 @@ class Ship(pygame.sprite.Sprite):
         if keys[pygame.K_DOWN] and self.rect.bottom < 600:
             self.rect.y += self.speed
 
+
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/bullet.png')
+        self.image = safe_load_image(resource_path('assets/bullet.png'))
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = -7
-        self.damage = 1   # обычный урон
+        self.damage = 1
 
     def update(self):
         self.rect.y += self.speed
         if self.rect.bottom < 0:
             self.kill()
 
-# ----- УСИЛЕННАЯ ПУЛЯ (тройной урон) -----
+
 class PowerBullet(Bullet):
+    """Усиленная пуля с тройным уроном (вызывается по клавише X)."""
     def __init__(self, x, y):
         super().__init__(x, y)
         self.damage = 3
         try:
-            self.image = pygame.image.load('assets/bossbullet.png').convert_alpha()
+            self.image = safe_load_image(resource_path('assets/bossbullet.png'))
+            self.image = pygame.transform.rotate(self.image, 180)
         except:
             self.image = pygame.Surface((12, 24), pygame.SRCALPHA)
             self.image.fill((255, 255, 0))
@@ -93,19 +111,19 @@ class PowerBullet(Bullet):
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
 
-# ----- АСТЕРОИДЫ -----
+
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, x, asteroid_type=1, vx=0):
         super().__init__()
         self.vx = vx
         if asteroid_type == 1:
-            self.image_path = 'assets/asteroid1.png'
+            self.image_path = resource_path('assets/asteroid1.png')
             self.size_factor = 1.3
             self.health = 1
             self.speed = 4
             self.points = 10
         else:
-            self.image_path = 'assets/asteroid2.png'
+            self.image_path = resource_path('assets/asteroid2.png')
             self.size_factor = 1.1
             self.health = 3
             self.speed = 2
@@ -131,21 +149,21 @@ class Asteroid(pygame.sprite.Sprite):
         self.health -= damage
         return self.health <= 0
 
-# ----- СЕРДЕЧКИ (жизни) -----
+
 class Hp(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/HealthsWhiteBorder.png')
+        self.image = safe_load_image(resource_path('assets/HealthsWhiteBorder.png'))
         self.image = pygame.transform.scale(self.image, (32, 32))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
 
-# ----- ПУЛИ БОССОВ -----
+
 class BossBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/bossbullet.png')
+        self.image = safe_load_image(resource_path('assets/bossbullet.png'))
         self.image = pygame.transform.rotate(self.image, 180)
         self.rect = self.image.get_rect()
         self.rect.centerx = x
@@ -157,11 +175,11 @@ class BossBullet(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
-# ----- ПЕРВЫЙ БОСС -----
+
 class Boss(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/boss.png')
+        self.image = safe_load_image(resource_path('assets/boss.png'))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -204,11 +222,11 @@ class Boss(pygame.sprite.Sprite):
             return True
         return False
 
-# ----- АПТЕЧКА -----
+
 class Medkit(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/medkit.png')
+        self.image = safe_load_image(resource_path('assets/medkit.png'))
         self.image = pygame.transform.scale(self.image, (30, 30))
         self.rect = self.image.get_rect()
         self.rect.centerx = x
@@ -220,11 +238,11 @@ class Medkit(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
-# ----- БОНУС УСКОРЕНИЯ -----
+
 class PowerUp(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/speedUpg.png')
+        self.image = safe_load_image(resource_path('assets/speedUpg.png'))
         self.image = pygame.transform.scale(self.image, (30, 30))
         self.rect = self.image.get_rect()
         self.rect.centerx = x
@@ -236,11 +254,11 @@ class PowerUp(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
-# ----- БОГ-АСТЕРОИД (второй босс) -----
+
 class GodBoss(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/god.png')
+        self.image = safe_load_image(resource_path('assets/god.png'))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -294,11 +312,11 @@ class GodBoss(pygame.sprite.Sprite):
             return True
         return False
 
-# ----- ТИПЫ ПУЛЬ ДЛЯ БОССОВ И САМОЛЁТОВ -----
+
 class LaserBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/bluebullet.png')
+        self.image = safe_load_image(resource_path('assets/bluebullet.png'))
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.top = y
@@ -309,10 +327,11 @@ class LaserBullet(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
+
 class NetBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = safe_load_image('assets/greenbullet.png')
+        self.image = safe_load_image(resource_path('assets/greenbullet.png'))
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
@@ -323,10 +342,11 @@ class NetBullet(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
+
 class DiagBullet(pygame.sprite.Sprite):
     def __init__(self, x, y, angle):
         super().__init__()
-        self.image = safe_load_image('assets/redbullet.png')
+        self.image = safe_load_image(resource_path('assets/redbullet.png'))
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
@@ -341,10 +361,11 @@ class DiagBullet(pygame.sprite.Sprite):
             self.rect.left < 0 or self.rect.right > 800):
             self.kill()
 
+
 class HomingBullet(pygame.sprite.Sprite):
     def __init__(self, x, y, target):
         super().__init__()
-        self.image = safe_load_image('assets/yellowbullet.png')
+        self.image = safe_load_image(resource_path('assets/yellowbullet.png'))
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
@@ -365,11 +386,11 @@ class HomingBullet(pygame.sprite.Sprite):
             self.rect.left < 0 or self.rect.right > 800):
             self.kill()
 
-# ----- САМОЛЁТЫ (миньоны) -----
+
 class EnemyPlaneBase(pygame.sprite.Sprite):
     def __init__(self, x, y, image_path, shoot_delay=60, move_speed=2):
         super().__init__()
-        self.image = safe_load_image(image_path)
+        self.image = safe_load_image(resource_path(image_path))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -441,37 +462,41 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
             return True
         return False
 
+
 class BluePlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/blue.png', shoot_delay=100, move_speed=2)
+
 
 class GreenPlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/green.png', shoot_delay=60, move_speed=2)
 
+
 class RedPlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/red.png', shoot_delay=90, move_speed=2)
+
 
 class YellowPlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/yellow.png', shoot_delay=120, move_speed=2)
 
-# ----- ТРЕТИЙ БОСС (финальный) -----
+
 class ThirdBoss(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.original_image = safe_load_image('assets/avenger.png')
+        self.original_image = safe_load_image(resource_path('assets/avenger.png'))
         self.image = self.original_image.copy()
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        
+
         self.base_speed = 2
         self.speed = self.base_speed
         self.health = 50
         self.points = 300
-        
+
         self.direction = 1
         self.change_dir_timer = 0
         self.dir_interval = random.randint(80, 150)
@@ -518,8 +543,8 @@ class ThirdBoss(pygame.sprite.Sprite):
         current_y_speed = self.y_speed * 1.5 if self.phase2 else self.y_speed
         self.rect.y += current_y_speed * self.y_direction
         y_range = 60 if self.phase2 else self.y_range
-        
-        if (self.rect.y < self.start_y - y_range or 
+
+        if (self.rect.y < self.start_y - y_range or
             self.rect.y > self.start_y + y_range):
             self.y_direction *= -1
 
