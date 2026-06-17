@@ -1,0 +1,185 @@
+plantuml
+@startuml
+!define RECTANGLE class
+
+title Основной игровой цикл Asteroid Shooter
+
+start
+
+:Запуск игры;
+:show_menu();
+:reset_game();
+
+repeat
+  :Обработка событий (pygame.event.get());
+  
+  if (Событие QUIT?) then (Да)
+    :Выход из игры;
+    stop
+  else (Нет)
+    if (Событие KEYDOWN?) then (Да)
+      if (Нажата SPACE?) then (Да)
+        :Выстрел (Bullet);
+        :Проверка задержки current_shot_delay;
+        if (Задержка пройдена?) then (Да)
+          :Создать пулю;
+          :Добавить в all_sprites и bullets;
+          :Воспроизвести shoot_sound;
+          :Обновить last_shot_time;
+        endif
+      endif
+      if (Нажата X и power_shots > 0?) then (Да)
+        :Выпустить усиленный патрон (PowerBullet);
+        :power_shots--;
+        :Достижение: power_bullet_used;
+      endif
+      if (Нажата ESC?) then (Да)
+        :Пауза (show_pause_menu);
+        if (Выбрано "Выйти в меню"? ) then (Да)
+          :Вернуться в главное меню;
+          stop
+        else (Нет)
+          :Продолжить игру;
+        endif
+      endif
+    else (Нет)
+    endif
+    
+    :Обновление состояния;
+    :player_ship.update(keys);
+    :bullets.update();
+    :asteroids.update();
+    :powerups.update();
+    :medkits.update();
+    :enemy_planes.update();
+    :bosses.update();
+    :Вражеские пули (laser, net, diag, homing).update();
+    
+    :Спавн объектов;
+    if (Время спавна астероида?) then (Да)
+      :Создать астероид (тип 1 или 2);
+      :Добавить в all_sprites и asteroids;
+    endif
+    
+    if (score >= 250 и не boss1_spawned?) then (Да)
+      :Создать первого босса (Boss);
+      :boss1_spawned = true;
+      :asteroid_spawn_enabled = false;
+      :Воспроизвести dark_sound;
+      :Показать попап "Первый босс!";
+    endif
+    
+    if (score >= 750 и не boss2_spawned?) then (Да)
+      :Создать второго босса (GodBoss);
+      :boss2_spawned = true;
+      :asteroid_spawn_enabled = false;
+      :Воспроизвести dark_sound;
+      :Показать попап "Бог-Астероид!";
+    endif
+    
+    if (score >= 1500 и не boss3_spawned?) then (Да)
+      :Создать третьего босса (ThirdBoss);
+      :boss3_spawned = true;
+      :asteroid_spawn_enabled = false;
+      :Воспроизвести dark_sound;
+      :Показать попап "Финальный бой!";
+    endif
+    
+    :Обработка коллизий;
+    
+    :Пули → Астероиды;
+    if (Есть столкновение?) then (Да)
+      :bullet.kill();
+      :asteroid.take_damage(bullet.damage);
+      if (Астероид уничтожен?) then (Да)
+        :score += asteroid.points;
+        :Достижения: score, asteroid_destroyed;
+        :Выдача усиленных патронов (power_shots++);
+        if (Выпадение PowerUp с шансом 15-30%?) then (Да)
+          :Создать PowerUp;
+        endif
+        if (Выпадение Medkit с шансом 1%?) then (Да)
+          :Создать Medkit;
+        endif
+        if (Астероид типа 2 (большой)?) then (Да)
+          :Создать 2 малых астероида;
+        endif
+        :asteroid.kill();
+      endif
+    endif
+    
+    :Пули → Боссы/Самолёты;
+    if (Есть столкновение?) then (Да)
+      :bullet.kill();
+      :враг.take_damage(bullet.damage);
+      if (Враг уничтожен?) then (Да)
+        :score += враг.points;
+        :Достижения: score, boss_defeated;
+        :Выдача усиленных патронов (power_shots++);
+        :Воспроизвести dead_asteroid_sound;
+        if (Босс уничтожен?) then (Да)
+          :asteroid_spawn_enabled = true;
+          :Создать Medkit;
+          :Очистить вражеские пули;
+          :Остановить dark_sound;
+          :Восстановить музыку (Music.mp3);
+          if (GodBoss уничтожен?) then (Да)
+            :Создать 4 самолёта (Blue, Green, Red, Yellow);
+            :planes_spawned = true;
+          endif
+        endif
+      endif
+    endif
+    
+    :Игрок → Враги/Пули;
+    if (Столкновение с астероидом, боссом или вражеской пулей?) then (Да)
+      if (Не invincible?) then (Да)
+        :lives--;
+        :player_ship.set_invincible(2000);
+        :update_hearts();
+        if (lives <= 0?) then (Да)
+          :Достижение: player_died;
+          :Воспроизвести boom_sound;
+          :pygame.time.wait(500);
+          :Показать меню (show_menu);
+          if (Игрок выбрал "Играть"? ) then (Да)
+            :reset_game();
+            :Сброс last_shot_time;
+            :Продолжить игру;
+          else (Нет)
+            :Выход в главное меню;
+            stop
+          endif
+        endif
+      endif
+    endif
+    
+    :Сбор бонусов;
+    if (Столкновение с PowerUp?) then (Да)
+      :powerup_active = true;
+      :powerup_end_time = current_time + 8000;
+      :current_shot_delay = 250;
+      :Достижение: powerup_collected;
+      :Воспроизвести powerup_sound;
+    endif
+    
+    if (Столкновение с Medkit?) then (Да)
+      :lives = min(lives+1, 5);
+      :update_hearts();
+      :Достижение: medkit_collected;
+      :Воспроизвести medkit_sound;
+    endif
+    
+    :Отрисовка (all_sprites.draw(screen));
+    :Рисование HUD (счёт, жизни, индикаторы, попапы);
+    :pygame.display.flip();
+    
+    :clock.tick(60);
+    
+  endif
+repeat while (running == True) is (Да)
+-> Нет;
+:Выход из игры;
+stop
+
+@enduml
