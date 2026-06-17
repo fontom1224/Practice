@@ -357,76 +357,100 @@ def show_difficulty_menu():
 
 # ===== МЕНЮ ДОСТИЖЕНИЙ =====
 def show_achievements():
-    back_button = pygame.Rect(WIDTH // 2 - 100, HEIGHT - 80, 200, 60)
+    back_button = pygame.Rect(WIDTH // 2 - 100, HEIGHT - 70, 200, 50)
+    scroll_y = 0
+    item_height = 70
+    gap = 8
+    visible_height = HEIGHT - 160  # заголовок + отступ + кнопка
+    total_height = len(achievement_manager.achievements) * (item_height + gap)
+    scroll_max = max(0, total_height - visible_height)
 
+    # Подсчёт разблокированных
+    unlocked_count = sum(1 for ach in achievement_manager.achievements.values() if ach['unlocked'])
+
+    clock = pygame.time.Clock()
     while True:
         screen.blit(bg_image, (0, 0))
         overlay = pygame.Surface((WIDTH, HEIGHT))
-        overlay.set_alpha(180)
-        overlay.fill((0, 0, 0))
+        overlay.set_alpha(200)
+        overlay.fill((10, 10, 30))
         screen.blit(overlay, (0, 0))
 
-        title = font_title.render("ДОСТИЖЕНИЯ", True, (255, 255, 255))
+        # Заголовок и счётчик
+        title = font_title.render("ДОСТИЖЕНИЯ", True, (255, 215, 0))
         title_rect = title.get_rect(center=(WIDTH // 2, 50))
         screen.blit(title, title_rect)
 
-        y = 100
-        for ach_id, ach in achievement_manager.achievements.items():
-            color = (60, 60, 60) if not ach['unlocked'] else (40, 80, 40)
-            rect = pygame.Rect(50, y, 700, 50)
-            pygame.draw.rect(screen, color, rect)
-            pygame.draw.rect(screen, (200, 200, 200), rect, 2)
+        counter = font_settings.render(
+            f"Разблокировано: {unlocked_count} из {len(achievement_manager.achievements)}",
+            True, (200, 200, 200)
+        )
+        counter_rect = counter.get_rect(center=(WIDTH // 2, 90))
+        screen.blit(counter, counter_rect)
 
-            # иконка
-            icon = "★" if ach['unlocked'] else "🔒"
-            icon_font = pygame.font.Font(None, 30)
-            icon_surf = icon_font.render(icon, True, (255, 255, 0) if ach['unlocked'] else (200, 200, 200))
-            screen.blit(icon_surf, (rect.x + 10, rect.y + 10))
+        # Область списка (клиппинг)
+        clip_rect = pygame.Rect(20, 110, WIDTH - 40, HEIGHT - 180)
+        pygame.draw.rect(screen, (30, 30, 50), clip_rect, border_radius=10)
+        pygame.draw.rect(screen, (80, 80, 120), clip_rect, 2, border_radius=10)
 
-            # название
-            name_font = pygame.font.Font(None, 24)
-            name_surf = name_font.render(ach['name'], True, (255, 255, 255))
-            screen.blit(name_surf, (rect.x + 50, rect.y + 5))
+        # Рисуем достижения с учётом прокрутки
+        y_start = clip_rect.y + 10
+        for idx, (ach_id, ach) in enumerate(achievement_manager.achievements.items()):
+            y_pos = y_start + idx * (item_height + gap) - scroll_y
+            if y_pos + item_height < clip_rect.y or y_pos > clip_rect.y + clip_rect.height:
+                continue
 
-            # описание
+            # Фон элемента
+            rect = pygame.Rect(clip_rect.x + 10, y_pos, clip_rect.width - 20, item_height)
+            unlocked = ach['unlocked']
+            bg_color = (40, 80, 40) if unlocked else (60, 60, 70)
+            border_color = (255, 215, 0) if unlocked else (100, 100, 120)
+            pygame.draw.rect(screen, bg_color, rect, border_radius=8)
+            pygame.draw.rect(screen, border_color, rect, 2, border_radius=8)
+
+           
+            # Название (очищаем от \n)
+            clean_name = ach['name'].replace('\n', '').strip()
+            name_font = pygame.font.Font(None, 26)
+            name_surf = name_font.render(clean_name, True, (255, 255, 255))
+            screen.blit(name_surf, (rect.x + 55, rect.y + 6))
+
+            # Описание
             desc_font = pygame.font.Font(None, 18)
             desc_surf = desc_font.render(ach['description'], True, (200, 200, 200))
-            screen.blit(desc_surf, (rect.x + 50, rect.y + 28))
+            screen.blit(desc_surf, (rect.x + 55, rect.y + 34))
 
-            # прогресс
-            if ach['target'] > 0:
-                progress_text = f"{ach['progress']}/{ach['target']}"
-                prog_font = pygame.font.Font(None, 18)
-                prog_surf = prog_font.render(progress_text, True, (255, 255, 255))
-                screen.blit(prog_surf, (rect.right - 80, rect.y + 15))
-                # полоска
-                bar_x = rect.right - 70
-                bar_y = rect.y + 30
-                bar_w = 60
-                bar_h = 8
-                pygame.draw.rect(screen, (80, 80, 80), (bar_x, bar_y, bar_w, bar_h))
-                if ach['target'] > 0:
-                    fill = min(1.0, ach['progress'] / ach['target'])
-                    pygame.draw.rect(screen, (0, 200, 0), (bar_x, bar_y, bar_w * fill, bar_h))
-            y += 55
-            if y > 600:
-                break
+           
+        # Полоса прокрутки (если нужно)
+        if scroll_max > 0:
+            scroll_bar_x = WIDTH - 20
+            scroll_bar_y = clip_rect.y + 10
+            scroll_bar_h = clip_rect.height - 20
+            scroll_bar_w = 8
+            pygame.draw.rect(screen, (60, 60, 80), (scroll_bar_x, scroll_bar_y, scroll_bar_w, scroll_bar_h), border_radius=4)
+            thumb_h = max(20, scroll_bar_h * (clip_rect.height / total_height))
+            thumb_y = scroll_bar_y + (scroll_y / scroll_max) * (scroll_bar_h - thumb_h)
+            pygame.draw.rect(screen, (200, 200, 220), (scroll_bar_x, thumb_y, scroll_bar_w, thumb_h), border_radius=4)
 
-        # кнопка назад
+        # Кнопка "Назад"
         mouse_pos = pygame.mouse.get_pos()
-        color = (50, 50, 200) if back_button.collidepoint(mouse_pos) else (100, 100, 100)
-        pygame.draw.rect(screen, color, back_button)
-        pygame.draw.rect(screen, (255, 255, 255), back_button, 3)
+        color = (70, 70, 220) if back_button.collidepoint(mouse_pos) else (120, 120, 140)
+        pygame.draw.rect(screen, color, back_button, border_radius=12)
+        pygame.draw.rect(screen, (255, 255, 255), back_button, 2, border_radius=12)
         back_text = font_button.render("НАЗАД", True, (255, 255, 255))
         back_rect = back_text.get_rect(center=back_button.center)
         screen.blit(back_text, back_rect)
 
         pygame.display.flip()
+        clock.tick(60)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.MOUSEWHEEL:
+                scroll_y -= event.y * 20
+                scroll_y = max(0, min(scroll_y, scroll_max))
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if back_button.collidepoint(event.pos):
                     return
