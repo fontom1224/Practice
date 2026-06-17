@@ -16,7 +16,6 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 # -------------------------------------------------------------
-
 pygame.init()
 pygame.mixer.init()
 
@@ -30,7 +29,6 @@ def safe_load_image(path, default_size=(50, 50)):
         surf = pygame.Surface(default_size, pygame.SRCALPHA)
         surf.fill((255, 0, 255))
         return surf
-
 
 class Ship(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -80,7 +78,6 @@ class Ship(pygame.sprite.Sprite):
         if keys[pygame.K_DOWN] and self.rect.bottom < 600:
             self.rect.y += self.speed
 
-
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -95,9 +92,7 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
-
 class PowerBullet(Bullet):
-    """Усиленная пуля с тройным уроном (вызывается по клавише X)."""
     def __init__(self, x, y):
         super().__init__(x, y)
         self.damage = 3
@@ -110,7 +105,6 @@ class PowerBullet(Bullet):
             pygame.draw.rect(self.image, (255, 200, 0), self.image.get_rect(), 2)
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
-
 
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, x, asteroid_type=1, vx=0):
@@ -128,7 +122,7 @@ class Asteroid(pygame.sprite.Sprite):
             self.health = 3
             self.speed = 2
             self.points = 30
-
+        
         original_image = safe_load_image(self.image_path)
         width = int(original_image.get_width() * self.size_factor)
         height = int(original_image.get_height() * self.size_factor)
@@ -149,7 +143,6 @@ class Asteroid(pygame.sprite.Sprite):
         self.health -= damage
         return self.health <= 0
 
-
 class Hp(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -158,7 +151,6 @@ class Hp(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-
 
 class BossBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -174,7 +166,6 @@ class BossBullet(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if self.rect.top > 600:
             self.kill()
-
 
 class Boss(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -222,7 +213,6 @@ class Boss(pygame.sprite.Sprite):
             return True
         return False
 
-
 class Medkit(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -237,7 +227,6 @@ class Medkit(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if self.rect.top > 600:
             self.kill()
-
 
 class PowerUp(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -254,7 +243,6 @@ class PowerUp(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
-
 class GodBoss(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -266,7 +254,6 @@ class GodBoss(pygame.sprite.Sprite):
         self.health = 20
         self.points = 200
         self.homing_chance = 0.05
-
         self.direction = 1
         self.change_dir_timer = 0
         self.dir_interval = random.randint(60, 180)
@@ -312,7 +299,6 @@ class GodBoss(pygame.sprite.Sprite):
             return True
         return False
 
-
 class LaserBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -327,7 +313,6 @@ class LaserBullet(pygame.sprite.Sprite):
         if self.rect.top > 600:
             self.kill()
 
-
 class NetBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -341,7 +326,6 @@ class NetBullet(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if self.rect.top > 600:
             self.kill()
-
 
 class DiagBullet(pygame.sprite.Sprite):
     def __init__(self, x, y, angle):
@@ -360,7 +344,6 @@ class DiagBullet(pygame.sprite.Sprite):
         if (self.rect.top > 600 or self.rect.bottom < 0 or
             self.rect.left < 0 or self.rect.right > 800):
             self.kill()
-
 
 class HomingBullet(pygame.sprite.Sprite):
     def __init__(self, x, y, target):
@@ -386,7 +369,6 @@ class HomingBullet(pygame.sprite.Sprite):
             self.rect.left < 0 or self.rect.right > 800):
             self.kill()
 
-
 class EnemyPlaneBase(pygame.sprite.Sprite):
     def __init__(self, x, y, image_path, shoot_delay=60, move_speed=2):
         super().__init__()
@@ -401,7 +383,6 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
         self.player = None
         self.move_speed = move_speed
         self.direction = 1
-
         self.launch_mode = False
         self.launch_vx = 0
         self.launch_vy = 0
@@ -462,26 +443,21 @@ class EnemyPlaneBase(pygame.sprite.Sprite):
             return True
         return False
 
-
 class BluePlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/blue.png', shoot_delay=100, move_speed=2)
-
 
 class GreenPlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/green.png', shoot_delay=60, move_speed=2)
 
-
 class RedPlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/red.png', shoot_delay=90, move_speed=2)
 
-
 class YellowPlane(EnemyPlaneBase):
     def __init__(self, x, y):
         super().__init__(x, y, 'assets/yellow.png', shoot_delay=120, move_speed=2)
-
 
 class ThirdBoss(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -491,7 +467,6 @@ class ThirdBoss(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-
         self.base_speed = 2
         self.speed = self.base_speed
         self.health = 50
@@ -643,3 +618,43 @@ class ThirdBoss(pygame.sprite.Sprite):
             self.kill()
             return True
         return False
+
+
+# ==========================================
+# СИСТЕМА ЧАСТИЦ (ПАРТИКЛЫ)
+# ==========================================
+class Particle(pygame.sprite.Sprite):
+    def __init__(self, x, y, color, speed_range, size_range, lifetime):
+        super().__init__()
+        size = random.randint(size_range[0], size_range[1])
+        self.image = pygame.Surface((size, size), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, color, (size // 2, size // 2), size // 2)
+        self.rect = self.image.get_rect(center=(x, y))
+        
+        angle = random.uniform(0, 2 * math.pi)
+        speed = random.uniform(speed_range[0], speed_range[1])
+        self.vx = math.cos(angle) * speed
+        self.vy = math.sin(angle) * speed
+        
+        self.lifetime = lifetime
+        self.alpha_decay = 255 / lifetime
+        self.current_alpha = 255
+
+    def update(self):
+        self.rect.x += self.vx
+        self.rect.y += self.vy
+        self.lifetime -= 1
+        self.current_alpha -= self.alpha_decay
+        
+        if self.current_alpha <= 0 or self.lifetime <= 0:
+            self.kill()
+        else:
+            self.image.set_alpha(int(self.current_alpha))
+
+def create_explosion(x, y, color, count=15, speed_range=(1, 5), size_range=(2, 6), lifetime=40):
+    """Вспомогательная функция для создания взрыва из частиц"""
+    particles_list = []
+    for _ in range(count):
+        p = Particle(x, y, color, speed_range, size_range, lifetime)
+        particles_list.append(p)
+    return particles_list
