@@ -50,7 +50,8 @@ try:
     dark_sound = pygame.mixer.Sound(resource_path('assets/DarkSouls.mp3'))
     spawn_sound = pygame.mixer.Sound(resource_path('assets/terraria.mp3'))
     transform_sound = pygame.mixer.Sound(resource_path('assets/transform.mp3'))
-    
+    victory_boss_sound = pygame.mixer.Sound(resource_path('assets/VictoryBoss.mp3'))
+
     shoot_sound.set_volume(0.3)
     medkit_sound.set_volume(1)
     spawn_sound.set_volume(1)
@@ -628,7 +629,10 @@ def reset_game():
     show_popup("Для движения используй стрелочки,\nчтобы выстрелить — нажми ПРОБЕЛ.\nЯ в тебя верю :D", duration=4000)
 
     update_hearts()
-
+    pygame.mixer.music.load('assets/Music.mp3')
+    pygame.mixer.music.set_volume(0.3)
+    pygame.mixer.music.play(-1)
+    
 def update_hearts():
     for heart in heart_sprites:
         heart.kill()
@@ -859,6 +863,8 @@ while game_active:
                 b.kill()
                 if boss_obj.take_damage(b.damage):
                     score += boss_obj.points
+                    if victory_boss_sound:
+                        victory_boss_sound.play()
 
                     # === ВЗРЫВ БОССА ===
                     boss_color = (255, 50, 50)
@@ -976,7 +982,8 @@ while game_active:
                 b.kill()
                 if plane.take_damage(b.damage):
                     score += plane.points
-
+                    if victory_boss_sound:
+                        victory_boss_sound.play()
                     # === ВЗРЫВ САМОЛЕТА ===
                     new_particles = create_explosion(plane.rect.centerx, plane.rect.centery, (255, 200, 0), count=15, speed_range=(1, 5), lifetime=35)
                     for p in new_particles:
