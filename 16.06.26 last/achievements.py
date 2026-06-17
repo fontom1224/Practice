@@ -102,4 +102,4 @@ class AchievementManager:
             if not self.achievements['first_death']['unlocked']:
                 if self.unlock('first_death'):
                     return 'first_death'
-        return Nones
+        return None
