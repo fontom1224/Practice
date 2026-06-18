@@ -37,3 +37,16 @@ endwhile
 
 stop
 @enduml
+
+---------------------
+#show: university-theme.with(
+  aspect-ratio: "16-9",
+  config-info(
+    title: [Отчёт по летней практике],
+    subtitle: [Разработка космического шутера на Pygame],
+    author: [Богатырёв Д.М.],
+    date: "2026",
+    institution: [Алтайский государственный университет, ИЦТЭФ],
+  ),
+)
+-----------------------------
